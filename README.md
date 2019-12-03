@@ -5,6 +5,7 @@ Functions:
 - ValidateAddress
 
 ## FunctionTests
+Test cases for each function.
 
 ### ValidateAddress
 2 positive
