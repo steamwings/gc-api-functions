@@ -1,2 +1,11 @@
-# gc-api-functions
-Function app code for API
+## Functions
+API function apps
+
+Functions:
+- ValidateAddress
+
+## FunctionTests
+
+###ValidateAddress
+2 positive
+1 negative
