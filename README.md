@@ -6,6 +6,6 @@ Functions:
 
 ## FunctionTests
 
-###ValidateAddress
+### ValidateAddress
 2 positive
 1 negative
