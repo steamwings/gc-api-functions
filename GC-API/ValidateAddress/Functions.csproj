@@ -2,11 +2,11 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <AzureFunctionsVersion>v2</AzureFunctionsVersion>
-    <AssemblyName>ValidateAddress</AssemblyName>
-    <RootNamespace>ValidateAddress</RootNamespace>
+    <AssemblyName>Functions</AssemblyName>
+    <RootNamespace>Functions</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.28" />
+    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.29" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">

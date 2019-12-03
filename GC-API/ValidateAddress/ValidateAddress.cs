@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 
-namespace ValidateAddress
+namespace Functions
 {
     public static class ValidateAddress
     {
@@ -38,21 +38,28 @@ namespace ValidateAddress
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            log.LogInformation("Processing an address validation request...");
+            log.LogInformation($"Processing address validation request...");
 
             string theater = QueryGet(req.Query, "theater");
             string street = QueryGet(req.Query, "street");
             string city = QueryGet(req.Query, "city");
             string state = QueryGet(req.Query, "state");
 
-            dynamic data = JsonConvert.DeserializeObject(await new StreamReader(req.Body).ReadToEndAsync());
-            theater = theater ?? data?.theater;
-            street = street ?? data?.street;
-            city = city ?? data?.city;
-            state = state ?? data?.state; //TODO This probably isn't needed
+            string bodyStr;
+            dynamic data = null;
+            using (var s = new StreamReader(req.Body))
+            {
+                data = JsonConvert.DeserializeObject(bodyStr = await s.ReadToEndAsync());
+            }
+
+            theater ??= data?.theater;
+            street ??= data?.street;
+            city ??= data?.city;
+            state ??= data?.state; //TODO This probably isn't needed
 
             if(theater is null || street is null || city is null)
             {
+                log.LogDebug("Data is missing.");
                 return new BadRequestObjectResult("Theater, street, and city must be in query string or JSON request body.");
             }
 
@@ -67,13 +74,16 @@ namespace ValidateAddress
 
             if (!mapsResponse.IsSuccessStatusCode)
             {
-                log.LogError("Call to Google Maps failed: " + responseBody);
+                log.LogError($"Call to maps failed\nURL:[{searchUrl}]" +
+                    $"\nMAPS RESPONSE:[Code:{mapsResponse.StatusCode},Reason:{mapsResponse.ReasonPhrase},Content:{mapsResponse.Content}]" +
+                    $"\nINCOMING REQUEST HEADERS:[{req.Headers}]\nBODY:[{bodyStr}]");
                 return new StatusCodeResult(StatusCodes.Status500InternalServerError);
             }
 
             bool result = ContainsTheater(theater, responseBody);
-
-            return new OkObjectResult($"From {searchUrl}: [[{result}]] {theater} Theater at {street},{city},{state ?? ""} ");
+            log.LogInformation($"Theater '{theater}' IS {(result ? "" : "NOT")} located near " +
+                $"{street}, {city}{(String.IsNullOrEmpty(state) ? "" : (", " + state))}");
+            return new OkObjectResult($"{result}");
      
         }
     }
