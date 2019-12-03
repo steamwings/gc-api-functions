@@ -6,6 +6,7 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http.Internal;
 using Xunit;
+using System.Runtime.CompilerServices;
 
 namespace FunctionsTests
 {
@@ -30,15 +31,22 @@ namespace FunctionsTests
             sw.Write(body);
             sw.Flush();
             request.Body.Seek(0, SeekOrigin.Begin);
-            logger.LogTrace("Length: " + request.Body.Length);
+            logger?.LogTrace("Length: " + request.Body.Length);
 
             return request;
         }
 
-        //TODO get caller name
-        public static ILogger MakeLogger()
+        public static ILogger MakeLogger([CallerMemberName] string name = "")
         {
-            return LoggerFactory.Create(builder => builder.AddDebug()).CreateLogger("");
+            if (lf is null) lf = LoggerFactory.Create(builder =>
+                builder.AddConsole()
+#if DEBUG
+                .SetMinimumLevel(LogLevel.Debug)
+#else
+                .SetMinimumLevel(LogLevel.Information)
+#endif
+                ) ;
+            return lf.CreateLogger(name);
         }
 
         [Fact]

@@ -45,26 +45,23 @@ namespace FunctionsTests
         [Fact]
         public void TestSuccessJSON1()
         {
-            using (var logfactory = LoggerFactory.Create(builder => builder.AddDebug()))
-            {
-                var logger = logfactory.CreateLogger("JSON1");
-                
-                string json = JsonConvert.SerializeObject(new { theater = "Gershwin Theatre", street = "222 W 51st St", city = "New York" });
-                logger.LogInformation(json);
+            var logger = TestHelper.MakeLogger();
 
-                var mapsRequest = TestHelper.MakeRequest(json, logger);
-                var response = Functions.ValidateAddress.Run(mapsRequest, logger);
-                response.Wait();
+            string json = JsonConvert.SerializeObject(new { theater = "Gershwin Theatre", street = "222 W 51st St", city = "New York" });
+            logger.LogInformation(json);
 
-                // Check that the response is an "OK" response
-                Assert.IsAssignableFrom<OkObjectResult>(response.Result);
+            var mapsRequest = TestHelper.MakeRequest(json, logger);
+            var response = Functions.ValidateAddress.Run(mapsRequest, logger);
+            response.Wait();
 
-                // Check that the contents of the response are the expected contents
-                var v = ((OkObjectResult)response.Result).Value;
+            // Check that the response is an "OK" response
+            Assert.IsAssignableFrom<OkObjectResult>(response.Result);
 
-                Assert.Equal("True", v);
-                TestHelper.CleanUp();
-            }           
+            // Check that the contents of the response are the expected contents
+            var v = ((OkObjectResult)response.Result).Value;
+
+            Assert.Equal("True", v);
+            TestHelper.CleanUp();
         }
 
         [Fact]
