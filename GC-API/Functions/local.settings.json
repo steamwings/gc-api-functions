@@ -3,7 +3,6 @@
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "AzureWebJobsDashboard": "UseDevelopmentStorage=true",
-    "FUNCTIONS_WORKER_RUNTIME": "dotnet",
-    "WEB_HOST": "https://serverlessfuncsbed6.blob.core.windows.net/website"
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet"
   }
 }
