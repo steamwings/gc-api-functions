@@ -24,7 +24,7 @@ stages:
       inputs:
         command: buildAndPush
         dockerfile: 'GC-API/Functions/Dockerfile'
-        containerRegistry: $(gcreg_connection)
+        containerRegistry: gcreg_connection
         repository: $(releaseImageName)
         tags: |
           $(tag)
@@ -34,7 +34,7 @@ stages:
       inputs:
         command: buildAndPush
         dockerfile: 'GC-API/Functions/Dockerfile-dbg'
-        containerRegistry: $(gcreg_connection)
+        containerRegistry: gcreg_connection
         repository: $(debugImageName)
         tags: |
           $(tag)
