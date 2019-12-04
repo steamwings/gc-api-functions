@@ -5,9 +5,6 @@
 trigger:
 - dev
 
-resources:
-- repo: self
-
 variables:
   tag: '$(Build.BuildId)'
   releaseImageName: 'image-api-util'
