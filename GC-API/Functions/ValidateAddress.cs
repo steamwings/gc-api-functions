@@ -66,7 +66,7 @@ namespace Functions
             string searchUrl = "https://www.google.com/maps/search/";
             searchUrl += MapsPrep(street) + ',';
             searchUrl += MapsPrep(city);
-            if(!String.IsNullOrEmpty(state)) searchUrl += ',' + MapsPrep(state);
+            if(!string.IsNullOrEmpty(state)) searchUrl += ',' + MapsPrep(state);
             searchUrl += "/";
 
             HttpResponseMessage mapsResponse = await client.GetAsync(searchUrl);
