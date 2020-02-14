@@ -22,17 +22,17 @@ namespace Functions
             log.LogInformation("Processing register request...");
 
             string name = req.Query["name"];
-            string username = req.Query["username"];
+            string email = req.Query["email"];
             string password = req.Query["password"]; //presalted
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             dynamic data = JsonConvert.DeserializeObject(requestBody);
 
-            name = name ?? data?.name;
-            username = username ?? data?.username;
-            password = password ?? data?.password;
+            name ??= data?.name;
+            email ??= data?.email;
+            password ??= data?.password;
 
-            if (name is null || username is null || password is null) return new BadRequestObjectResult("Missing parameter.");
+            if (name is null || email is null || password is null) return new BadRequestObjectResult("Missing parameter.");
 
             byte[] salt = new byte[128 / 8];
             using (var rng = RandomNumberGenerator.Create())
@@ -51,12 +51,12 @@ namespace Functions
 
             //TODO Check for existing user (even though the UI should tell you this too)
 
-            //return new ...RequestObjectResult("Username already exists.")
+            //return new ...RequestObjectResult("email already exists.")
 
             //TODO: Write to Cosmos
 
             return password != null
-                ? (ActionResult)new OkObjectResult($"Hello, {username}")
+                ? (ActionResult)new OkObjectResult($"Hello, {email}")
                 : new BadRequestObjectResult("Please pass a name on the query string or in the request body");
         }
     }
