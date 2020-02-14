@@ -52,10 +52,10 @@ namespace Functions
                 data = JsonConvert.DeserializeObject(bodyStr = await s.ReadToEndAsync());
             }
 
-            theater = theater ?? data?.theater;
-            street = street ?? data?.street;
-            city = city ?? data?.city;
-            state = state ?? data?.state; //TODO This probably isn't needed
+            theater ??= data?.theater;
+            street ??= street ?? data?.street;
+            city ??= data?.city;
+            state ??= data?.state; //TODO This probably isn't needed
 
             if(theater is null || street is null || city is null)
             {
