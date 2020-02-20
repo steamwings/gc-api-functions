@@ -74,7 +74,6 @@ namespace Functions
             }
 
             log.LogInformation("Hash: " + hashed);
-            //
 
             //TODO: Write to Cosmos
 
