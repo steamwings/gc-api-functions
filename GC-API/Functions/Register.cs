@@ -9,6 +9,8 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+using Microsoft.Azure.Documents.Client;
+using Microsoft.Azure.Documents;
 
 namespace Functions
 {
@@ -17,6 +19,10 @@ namespace Functions
         [FunctionName("Register")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
+            [CosmosDB(
+                databaseName: "UsersDB",
+                collectionName: "Users",
+                ConnectionStringSetting = "CosmosDBConnection")] DocumentClient client,
             ILogger log)
         {
             log.LogInformation("Processing register request...");
@@ -32,7 +38,17 @@ namespace Functions
             email ??= data?.email;
             password ??= data?.password;
 
-            if (name is null || email is null || password is null) return new BadRequestObjectResult("Missing parameter.");
+            string nullName = 0 switch {
+               _ when name is null => nameof(name),
+               _ when email is null => nameof(email),
+               _ when password is null => nameof(password),
+               _ => "none"
+            };
+
+            if (name != "none") {
+                log.LogWarning($"Parameter {nullName} cannot be null.");
+                return new BadRequestObjectResult($"Missing parameter ${nullName}.");
+            }
 
             byte[] salt = new byte[128 / 8];
             using (var rng = RandomNumberGenerator.Create())
@@ -49,14 +65,21 @@ namespace Functions
                 iterationCount: 10000,
                 numBytesRequested: 256 / 8));
 
-            //TODO Check for existing user (even though the UI should tell you this too)
+            try
+            {
+                var user = await client.CreateUserAsync("UserDB", new User { Id = email });
+            } catch (DocumentClientException e)
+            {
+                log.LogError(e, "Create user failed.");
+            }
 
-            //return new ...RequestObjectResult("email already exists.")
+            log.LogInformation("Hash: " + hashed);
+            //
 
             //TODO: Write to Cosmos
 
             return password != null
-                ? (ActionResult)new OkObjectResult($"Hello, {email}")
+                ? (ActionResult) new OkObjectResult($"Hello, {email}")
                 : new BadRequestObjectResult("Please pass a name on the query string or in the request body");
         }
     }
