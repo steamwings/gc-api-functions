@@ -24,7 +24,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Functions\Functions.csproj" />
-    <ProjectReference Include="..\ValidateAddress\Functions.csproj" />
   </ItemGroup>
 
 </Project>
