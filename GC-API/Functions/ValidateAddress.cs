@@ -35,7 +35,8 @@ namespace Functions
 
         [FunctionName("ValidateAddress")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "post")] 
+            HttpRequest req,
             ILogger log)
         {
             log.LogInformation($"Processing address validation request...");
