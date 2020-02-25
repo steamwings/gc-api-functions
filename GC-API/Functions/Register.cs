@@ -7,10 +7,10 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using System.Security.Cryptography;
-using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.Azure.Documents.Client;
 using System.Net;
+using Functions.Helpers;
+using Models.User;
 
 namespace Functions
 {
@@ -28,20 +28,16 @@ namespace Functions
                 ConnectionStringSetting = "CosmosDBConnection")] DocumentClient client,
             ILogger log)
         {
-            log.LogInformation("Processing register request...");
-
-            string name = req.Query["name"];
-            string email = req.Query["email"];
-            string password = req.Query["password"]; // presalted
+            log.LogInformation($"Processing register request...");
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             dynamic data = JsonConvert.DeserializeObject(requestBody);
 
-            name ??= data?.name;
-            email ??= data?.email;
-            password ??= data?.password;
+            string name = data?.name;
+            string email = data?.email;
+            string password = data?.password; // should be presalted by front-end
 
-            string nullName = 0 switch {
+            string nullName = 0 switch { // Obtuse null check
                 _ when name is null => nameof(name),
                 _ when email is null => nameof(email),
                 _ when password is null => nameof(password),
@@ -50,30 +46,29 @@ namespace Functions
 
             if (nullName != "none") {
                 log.LogWarning($"Parameter {nullName} cannot be null.");
-                return new BadRequestObjectResult($"Missing parameter ${nullName}. You can use query string or request body.");
+                return new BadRequestObjectResult($"Missing parameter ${nullName}.");
             }
 
-            byte[] salt = new byte[128 / 8];
-            using (var rng = RandomNumberGenerator.Create())
+            string salt = null;
+            string hash;
+            try
             {
-                rng.GetBytes(salt);
+                hash = HashHelper.Hash(password, ref salt);
+            } catch (FormatException e)
+            {
+                log.LogError(e, "Invalid password hash.");
+                return new BadRequestObjectResult("Invalid password hash.");
             }
-            var saltString = Convert.ToBase64String(salt);
-            Console.WriteLine($"Salt: {saltString}");
 
-            // derive a 256-bit subkey: HMACSHA1 with 10,000 iterations
-            string hashed = Convert.ToBase64String(KeyDerivation.Pbkdf2(
-                password: password,
-                salt: salt,
-                prf: KeyDerivationPrf.HMACSHA1,
-                iterationCount: 10000,
-                numBytesRequested: 256 / 8));
-            log.LogInformation("Hash: " + hashed);
-
-            var resp = await client.CreateDocumentAsync("dbs/userdb/colls/usercoll/", new { hash = hashed, salt = saltString }) ; 
+            var coreUser = new CoreUser { email = email, name = name };
+            var user = new GcUser { hash = hash, salt = salt, coreUser = coreUser};
+            var resp = await client.CreateDocumentAsync("dbs/userdb/colls/usercoll/", user) ;
             
+            // TODO Log response body if debug mode ONLY - don't log PII
+            log.LogDebug($"Status {(int) resp.StatusCode} for new user: {JsonConvert.SerializeObject(user)}");
+                        
             return resp.StatusCode == HttpStatusCode.Created
-                ? (IActionResult) new CreatedResult(resp.Resource.SelfLink, resp.Resource)
+                ? (IActionResult) new CreatedResult(resp.Resource.Id, coreUser)
                 : new StatusCodeResult((int)resp.StatusCode);
         }
     }

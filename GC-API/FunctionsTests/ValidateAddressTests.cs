@@ -48,11 +48,9 @@ namespace FunctionsTests
         public void TestSuccessJSON1()
         {
             var logger = TestHelper.MakeLogger();
+            var body = new { theater = "Gershwin Theatre", street = "222 W 51st St", city = "New York" };
+            var mapsRequest = TestHelper.MakeRequest(body, logger);
 
-            string json = JsonConvert.SerializeObject(new { theater = "Gershwin Theatre", street = "222 W 51st St", city = "New York" });
-            logger.LogInformation(json);
-
-            var mapsRequest = TestHelper.MakeRequest(json, logger);
             var response = Functions.ValidateAddress.Run(mapsRequest, logger);
             response.Wait();
 

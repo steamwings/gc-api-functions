@@ -5,12 +5,13 @@ using System.IO;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http.Internal;
-using Xunit;
 using System.Runtime.CompilerServices;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
 
 namespace FunctionsTests
 {
+    [TestClass]
     public class TestHelper
     {
         private static StreamWriter sw = null;
@@ -22,6 +23,13 @@ namespace FunctionsTests
             sw?.Dispose();
             sr?.Dispose();
             lf?.Dispose();
+        }
+
+        public static HttpRequest MakeRequest(object toSerialize, ILogger logger = null)
+        {
+            string json = JsonConvert.SerializeObject(toSerialize);
+            logger.LogInformation(json);
+            return MakeRequest(json, logger);
         }
 
         public static HttpRequest MakeRequest(string body, ILogger logger = null)
@@ -50,14 +58,14 @@ namespace FunctionsTests
             return lf.CreateLogger(name);
         }
 
-        [Fact]
+        [TestMethod]
         public void TestMakeRequest()
         {
             string val = "hello world";
             var req = MakeRequest(val);
             sr = new StreamReader(req.Body);
             string readVal = sr.ReadToEnd();
-            Assert.Equal(val, readVal);
+            Assert.AreEqual(val, readVal);
             CleanUp();
         }
 

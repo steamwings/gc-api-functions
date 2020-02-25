@@ -58,10 +58,19 @@ namespace Functions
             city ??= data?.city;
             state ??= data?.state; //TODO This probably isn't needed
 
-            if(theater is null || street is null || city is null)
+            // Obtuse null check
+            string nullName = 0 switch
             {
-                log.LogDebug("Data is missing.");
-                return new BadRequestObjectResult("Theater, street, and city must be in query string or JSON request body.");
+                _ when theater is null => nameof(theater),
+                _ when street is null => nameof(street),
+                _ when city is null => nameof(city),
+                _ => "none"
+            };
+
+            if (nullName != "none")
+            {
+                log.LogDebug($"Field {nullName} is missing.");
+                return new BadRequestObjectResult($"{nullName} missing. Theater, street, and city must appear in query string or JSON request body.");
             }
 
             string searchUrl = "https://www.google.com/maps/search/";
