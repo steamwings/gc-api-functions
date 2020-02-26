@@ -4,8 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace FunctionsTests
@@ -59,7 +57,7 @@ namespace FunctionsTests
             //Assert.IsAssignableFrom<OkObjectResult>(response.Result);
 
             // Check that the contents of the response are the expected contents
-            var v = ((OkObjectResult)response.Result).Value;
+            var v = ((OkObjectResult) response.Result).Value;
 
             Assert.AreEqual("True", v);
             TestHelper.CleanUp();

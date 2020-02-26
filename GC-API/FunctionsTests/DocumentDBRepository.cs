@@ -12,8 +12,12 @@ namespace FunctionsTests
 {
     public static class DocumentDBRepository<T> where T : class
     {
-        private static readonly string DatabaseId = ConfigurationManager.AppSettings["database"];
-        private static readonly string CollectionId = ConfigurationManager.AppSettings["collection"];
+        private const string DEFAULT_DB = "userdb";
+        private const string DEFAULT_COL = "usercoll";
+        private static string DatabaseId = DEFAULT_DB;
+        private static string CollectionId = DEFAULT_COL;
+        private static readonly string Endpoint = ConfigurationManager.AppSettings["endpoint"];
+        private static readonly string AuthKey = ConfigurationManager.AppSettings["authkey"];
 
         public static DocumentClient Client { get; private set; }
 
@@ -70,8 +74,10 @@ namespace FunctionsTests
             await Client.DeleteDocumentAsync(UriFactory.CreateDocumentUri(DatabaseId, CollectionId, id), new RequestOptions { PartitionKey = new PartitionKey(category) });
         }
 
-        public static void Initialize(string endpoint, string authKey)
+        public static void Initialize(string endpoint, string authKey, string databaseId = DEFAULT_DB, string collectionId = DEFAULT_COL)
         {
+            DatabaseId = databaseId;
+            CollectionId = collectionId;
             Client = new DocumentClient(new Uri(endpoint), authKey);
             CreateDatabaseIfNotExistsAsync().Wait();
             CreateCollectionIfNotExistsAsync("/category").Wait();
