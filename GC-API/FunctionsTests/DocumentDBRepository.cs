@@ -16,16 +16,15 @@ namespace FunctionsTests
         private const string DEFAULT_COL = "usercoll";
         private static string DatabaseId = DEFAULT_DB;
         private static string CollectionId = DEFAULT_COL;
-        private static readonly string Endpoint = ConfigurationManager.AppSettings["endpoint"];
-        private static readonly string AuthKey = ConfigurationManager.AppSettings["authkey"];
 
         public static DocumentClient Client { get; private set; }
 
-        public static async Task<T> GetItemAsync(string id, string category)
+        public static async Task<T> GetItemAsync(string id, string category = null)
         {
             try
             {
-                Document document =
+               Document document = category is null ?
+                    await Client.ReadDocumentAsync(UriFactory.CreateDocumentUri(DatabaseId, CollectionId, id)) :
                     await Client.ReadDocumentAsync(UriFactory.CreateDocumentUri(DatabaseId, CollectionId, id), new RequestOptions { PartitionKey = new PartitionKey(category) });
                 return (T)(dynamic)document;
             }
@@ -69,18 +68,19 @@ namespace FunctionsTests
             return await Client.ReplaceDocumentAsync(UriFactory.CreateDocumentUri(DatabaseId, CollectionId, id), item);
         }
 
-        public static async Task DeleteItemAsync(string id, string category)
+        public static async Task DeleteItemAsync(string id, string category = null)
         {
-            await Client.DeleteDocumentAsync(UriFactory.CreateDocumentUri(DatabaseId, CollectionId, id), new RequestOptions { PartitionKey = new PartitionKey(category) });
+            await Client.DeleteDocumentAsync(UriFactory.CreateDocumentUri(DatabaseId, CollectionId, id), 
+                category is null ? null : new RequestOptions { PartitionKey = new PartitionKey(category) });
         }
 
-        public static void Initialize(string endpoint, string authKey, string databaseId = DEFAULT_DB, string collectionId = DEFAULT_COL)
+        public static void Initialize(string endpoint, string authKey, string partitionKey = null, string databaseId = DEFAULT_DB, string collectionId = DEFAULT_COL)
         {
             DatabaseId = databaseId;
             CollectionId = collectionId;
             Client = new DocumentClient(new Uri(endpoint), authKey);
             CreateDatabaseIfNotExistsAsync().Wait();
-            CreateCollectionIfNotExistsAsync("/category").Wait();
+            CreateCollectionIfNotExistsAsync(partitionKey).Wait();
         }
 
         public static void Teardown()
@@ -107,27 +107,37 @@ namespace FunctionsTests
             }
         }
 
-        private static async Task CreateCollectionIfNotExistsAsync(string partitionkey)
+        private static async Task CreateCollectionIfNotExistsAsync(string partitionkey = null, int throughputRus = 400)
         {
             try
             {
-                await Client.ReadDocumentCollectionAsync(UriFactory.CreateDocumentCollectionUri(DatabaseId, CollectionId), new RequestOptions { PartitionKey = new PartitionKey(partitionkey) });
+                if (partitionkey is null)
+                {
+                    await Client.ReadDocumentCollectionAsync(UriFactory.CreateDocumentCollectionUri(DatabaseId, CollectionId));
+                }
+                else
+                {
+                    await Client.ReadDocumentCollectionAsync(UriFactory.CreateDocumentCollectionUri(DatabaseId, CollectionId), new RequestOptions { PartitionKey = new PartitionKey(partitionkey) });
+                }
             }
             catch (DocumentClientException e)
             {
                 if (e.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
-                    await Client.CreateDocumentCollectionAsync(
-                        UriFactory.CreateDatabaseUri(DatabaseId),
-                        new DocumentCollection
+                    var docColl = new DocumentCollection
+                    {
+                        Id = CollectionId,
+                    };
+                    if (partitionkey != null)
+                    {
+                        docColl.PartitionKey = new PartitionKeyDefinition
                         {
-                            Id = CollectionId,
-                            PartitionKey = new PartitionKeyDefinition
-                            {
-                                Paths = new System.Collections.ObjectModel.Collection<string>(new List<string>() { partitionkey })
-                            }
-                        },
-                        new RequestOptions { OfferThroughput = 400 });
+                            Paths = new System.Collections.ObjectModel.Collection<string>(new List<string>() { partitionkey })
+                        };
+                    }
+                    await Client.CreateDocumentCollectionAsync(
+                        UriFactory.CreateDatabaseUri(DatabaseId), docColl, 
+                        new RequestOptions { OfferThroughput = throughputRus });
                 }
                 else
                 {

@@ -12,10 +12,17 @@ namespace FunctionsTests
     public class ValidateAddressTests
     {
         public TestContext TestContext { get; set; }
+        
+        [TestCleanup]
+        public void TestCleanup()
+        {
+            TestHelper.Cleanup();
+        }
 
         [TestMethod]
         public void TestSuccessQuery1()
         {
+            var logger = TestHelper.MakeLogger();
             var request = new DefaultHttpRequest(new DefaultHttpContext())
             {
                 Query = new QueryCollection
@@ -28,14 +35,12 @@ namespace FunctionsTests
                     }
                 ),
             };
-            var logger = NullLoggerFactory.Instance.CreateLogger("Null Logger");
 
             var response = Functions.ValidateAddress.Run(request, logger);
             response.Wait();
 
             // Check that the response is an "OK" response
             Assert.IsInstanceOfType(response.Result, typeof(OkObjectResult));
-            //Assert.IsAssignableFrom<OkObjectResult>(response.Result);
 
             // Check that the contents of the response are the expected contents
             var v = ((OkObjectResult)response.Result).Value;
@@ -54,18 +59,17 @@ namespace FunctionsTests
 
             // Check that the response is an "OK" response
             Assert.IsInstanceOfType(response.Result, typeof(OkObjectResult));
-            //Assert.IsAssignableFrom<OkObjectResult>(response.Result);
 
             // Check that the contents of the response are the expected contents
             var v = ((OkObjectResult) response.Result).Value;
-
             Assert.AreEqual("True", v);
-            TestHelper.CleanUp();
         }
 
         [TestMethod]
         public void TestFailureNoTheater()
         {
+            // Use NullLogger for negative test
+            var logger = NullLoggerFactory.Instance.CreateLogger("Null Logger");
             var request = new DefaultHttpRequest(new DefaultHttpContext())
             {
                 Query = new QueryCollection
@@ -77,17 +81,17 @@ namespace FunctionsTests
                     }
                 )
             };
-            var logger = NullLoggerFactory.Instance.CreateLogger("Null Logger");
 
             var response = Functions.ValidateAddress.Run(request, logger);
             response.Wait();
 
             Assert.IsInstanceOfType(response.Result, typeof(BadRequestObjectResult));
-            //Assert.IsAssignableFrom<BadRequestObjectResult>(response.Result);
 
             // Check that the contents of the response are the expected contents
             var result = (BadRequestObjectResult)response.Result;
-            Assert.AreEqual("Theater, street, and city must be in query string or JSON request body.", result.Value);
+            Assert.IsInstanceOfType(result.Value, typeof(string));
+            string msg = ((string)result.Value);
+            Assert.IsTrue(msg.Contains("missing", StringComparison.OrdinalIgnoreCase));
         }
     }
 }

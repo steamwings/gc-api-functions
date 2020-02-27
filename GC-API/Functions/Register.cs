@@ -49,12 +49,14 @@ namespace Functions
                 return new BadRequestObjectResult($"Missing parameter ${nullName}.");
             }
 
-            string salt = null;
+            string salt = null; // assignment required because it's passed with ref
             string hash;
             try
             {
                 hash = HashHelper.Hash(password, ref salt);
-            } catch (FormatException e)
+                log.LogTrace($"Generated hash: {hash}, salt: {salt}");
+            }
+            catch (FormatException e)
             {
                 log.LogError(e, "Invalid password hash.");
                 return new BadRequestObjectResult("Invalid password hash.");

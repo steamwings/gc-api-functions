@@ -16,13 +16,22 @@ namespace FunctionsTests
     {
         private static StreamWriter sw = null;
         private static StreamReader sr = null;
-        private static ILoggerFactory lf = null;
+        private static ILoggerFactory lf = LoggerFactory.Create(builder =>
+                builder.AddConsole()
+#if DEBUG
+                .SetMinimumLevel(LogLevel.Debug)
+#else
+                .SetMinimumLevel(LogLevel.Information)
+#endif
+        );
 
-        internal static void CleanUp()
+        /// <summary>
+        /// This should be called if MakeRequest is called to dispose the internal streams
+        /// </summary>
+        internal static void Cleanup()
         {
             sw?.Dispose();
             sr?.Dispose();
-            lf?.Dispose();
         }
 
         public static HttpRequest MakeRequest(object toSerialize, ILogger logger = null)
@@ -41,20 +50,11 @@ namespace FunctionsTests
             sw.Flush();
             request.Body.Seek(0, SeekOrigin.Begin);
             logger?.LogTrace("Length: " + request.Body.Length);
-
             return request;
         }
 
         public static ILogger MakeLogger([CallerMemberName] string name = "")
         {
-            if (lf is null) lf = LoggerFactory.Create(builder =>
-                builder.AddConsole()
-#if DEBUG
-                .SetMinimumLevel(LogLevel.Debug)
-#else
-                .SetMinimumLevel(LogLevel.Information)
-#endif
-                ) ;
             return lf.CreateLogger(name);
         }
 
@@ -66,7 +66,7 @@ namespace FunctionsTests
             sr = new StreamReader(req.Body);
             string readVal = sr.ReadToEnd();
             Assert.AreEqual(val, readVal);
-            CleanUp();
+            Cleanup();
         }
 
     }

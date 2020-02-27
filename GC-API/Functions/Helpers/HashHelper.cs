@@ -10,11 +10,17 @@ namespace Functions.Helpers
     {
         private const int saltBits = 128;
         private const int hashBits = 512;
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="password"></param>
+        /// <param name="salt">Pass by reference. When null, it will be generated.</param>
+        /// <returns></returns>
         public static string Hash(string password, ref string salt)
         {
             byte[] saltBA;
 
-            if (salt == null) // Generate salt
+            if (salt == null) // then generate salt
             {
                 saltBA = new byte[saltBits / 8];
                 using (var rng = RandomNumberGenerator.Create())
@@ -22,8 +28,7 @@ namespace Functions.Helpers
                     rng.GetBytes(saltBA);
                 }
                 salt = Convert.ToBase64String(saltBA);
-                //log.LogDebug($"Salt: {salt}");
-            } else // Convert salt to byte array
+            } else // convert salt to byte array
             {
                 saltBA = Convert.FromBase64String(salt);
                 if (saltBA.Length != saltBits / 8)
@@ -39,7 +44,7 @@ namespace Functions.Helpers
                 salt: saltBA,
                 prf: KeyDerivationPrf.HMACSHA512,
                 iterationCount: 12000,
-                numBytesRequested: hashBits / 8)); // 256 bit
+                numBytesRequested: hashBits / 8));
         }
     }
 }
