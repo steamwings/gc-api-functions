@@ -22,7 +22,7 @@ namespace Functions
     {
         [FunctionName("Login")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req,
             [CosmosDB("userdb","usercoll",
             ConnectionStringSetting = "CosmosDBConnection")] DocumentClient client,
             ILogger log)
