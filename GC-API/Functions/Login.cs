@@ -75,7 +75,9 @@ namespace Functions
                 {
                     case 0: return new NotFoundResult();
                     case 1: break;
-                    default: break; // Panic!
+                    default:
+                        log.LogCritical($"More than one user with email '{email}'");
+                        return new StatusCodeResult(500);
                 }
                 user = users.AsEnumerable().Single();
             }
