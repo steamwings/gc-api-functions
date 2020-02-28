@@ -21,7 +21,7 @@ namespace Functions
     {
         [FunctionName("Register")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "post"] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req,
             [CosmosDB(
                 databaseName: "userdb",
                 collectionName: "usercoll",
