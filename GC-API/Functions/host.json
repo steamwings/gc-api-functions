@@ -5,11 +5,11 @@
       "connectionMode": "Gateway",
       "protocol": "Https",
       "leaseOptions": {
-        "leasePrefix": "prefix1"
+        "leasePrefix": "func-api"
       }
     },
   },
   "logLevel": {
-    "default": "Information"
+    "default": "Trace"
   }
 }
