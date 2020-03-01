@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
-using System.Configuration;
 using JWT.Algorithms;
 using JWT.Builder;
 using Microsoft.Extensions.Logging;
@@ -15,7 +14,7 @@ namespace Functions.Authentication
     {
         private const int saltBits = 128;
         private const int hashBits = 512;
-        private static readonly string jwtSecret = ConfigurationManager.AppSettings["AuthenticationSecret"];
+        private static readonly string jwtSecret = Environment.GetEnvironmentVariable("AuthenticationSecret");
 
         /// <summary>
         /// 
@@ -60,7 +59,7 @@ namespace Functions.Authentication
         }
         public static string GenerateJwt(Dictionary<string, object> claims, ILogger log)
         {
-            if (!int.TryParse(ConfigurationManager.AppSettings["SessionTokenDays"], out int days))
+            if (!int.TryParse(Environment.GetEnvironmentVariable("SessionTokenDays"), out int days))
             {
                 log?.LogWarning("Invalid value for 'SessionTokenDays' (should be an integer)");
                 days = 4;

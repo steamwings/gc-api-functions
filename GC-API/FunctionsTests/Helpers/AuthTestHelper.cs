@@ -1,7 +1,7 @@
 ﻿using Functions.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Configuration;
+using System;
 
 namespace FunctionsTests.Helpers
 {
@@ -9,8 +9,8 @@ namespace FunctionsTests.Helpers
     {
         public static void PrepareForJwtOperations(TestContext testContext)
         {
-            ConfigurationManager.AppSettings["AuthenticationSecret"] = (string) testContext.Properties["AuthenticationSecret"];
-            ConfigurationManager.AppSettings["SessionTokenDays"] = (string) testContext.Properties["SessionTokenDays"];
+            Environment.SetEnvironmentVariable("AuthenticationSecret", (string)testContext.Properties["AuthenticationSecret"]);
+            Environment.SetEnvironmentVariable("SessionTokenDays", (string)testContext.Properties["SessionTokenDays"]);
         }
 
         public static string GenerateValidJwt(ILogger log, string email="e@mail.com")
