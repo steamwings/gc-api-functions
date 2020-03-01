@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 
-namespace FunctionsTests
+namespace FunctionsTests.Helpers
 {
     [TestClass]
     public class TestHelper
@@ -24,6 +24,12 @@ namespace FunctionsTests
                 .SetMinimumLevel(LogLevel.Information)
 #endif
         );
+        
+        [AssemblyInitialize]
+        public static void Init(TestContext testContext)
+        {
+            AuthTestHelper.PrepareForJwtOperations(testContext);
+        }
 
         /// <summary>
         /// This should be called if MakeRequest is called to dispose the internal streams

@@ -1,5 +1,5 @@
 ﻿using Functions.Extensions;
-using Functions.Helpers;
+using Functions.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Documents;
@@ -27,7 +27,7 @@ namespace Functions
             ConnectionStringSetting = "CosmosDBConnection")] DocumentClient client,
             ILogger log)
         {
-            log.LogInformation("Processing register request...");
+            log.LogTrace("Processing register request...");
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             dynamic data = JsonConvert.DeserializeObject(requestBody);
@@ -73,7 +73,9 @@ namespace Functions
                     .Where(u => u.coreUser.email == email);
                 switch (users.Count())
                 {
-                    case 0: return new NotFoundResult();
+                    case 0:
+                        log.LogTrace($"User for ${email} was not found.");
+                        return new NotFoundResult();
                     case 1: break;
                     default:
                         log.LogCritical($"More than one user with email '{email}'");
@@ -83,12 +85,13 @@ namespace Functions
             }
 
             string salt = user.salt;
-            if (user.hash == HashHelper.Hash(password, ref salt))
+            if (user.hash == AuthenticationHelper.Hash(password, ref salt))
             {
-                return new OkObjectResult(user.coreUser);
+                var token = AuthenticationHelper.GenerateJwt(email, log);
+                return new OkObjectResult(new { user.coreUser.name, token });
             } else {
                 // TODO Save failed login attempts somewhere so we can notify users
-                log.LogWarning($"Failed login attempt for ${"user"}");
+                log.LogWarning($"Failed login attempt for {email}");
                 return new UnauthorizedResult();
             }
         }

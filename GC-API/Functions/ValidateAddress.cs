@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Net.Http;
 using System.Text.RegularExpressions;
+using Functions.Authentication;
 
 namespace Functions
 {
@@ -18,8 +19,8 @@ namespace Functions
 
         private static string QueryGet(IQueryCollection collection, string name)
         {
-            return collection.ContainsKey(name) ? 
-                System.Net.WebUtility.UrlDecode(collection[name]) 
+            return collection.ContainsKey(name) 
+                ? System.Net.WebUtility.UrlDecode(collection[name]) 
                 : null;
         }
 
@@ -40,18 +41,19 @@ namespace Functions
             ILogger log)
         {
             log.LogInformation($"Processing address validation request...");
+            
+            if (!AuthenticationHelper.Authorize(req.Headers, log))
+            {
+                return new UnauthorizedResult();
+            }
 
             string theater = QueryGet(req.Query, "theater");
             string street = QueryGet(req.Query, "street");
             string city = QueryGet(req.Query, "city");
             string state = QueryGet(req.Query, "state");
 
-            string bodyStr;
-            dynamic data = null;
-            using (var s = new StreamReader(req.Body))
-            {
-                data = JsonConvert.DeserializeObject(bodyStr = await s.ReadToEndAsync());
-            }
+            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            dynamic data = JsonConvert.DeserializeObject(requestBody);
 
             theater ??= data?.theater;
             street ??= data?.street;
@@ -86,7 +88,7 @@ namespace Functions
             {
                 log.LogError($"Call to maps failed\nURL:[{searchUrl}]" +
                     $"\nMAPS RESPONSE:[Code:{mapsResponse.StatusCode},Reason:{mapsResponse.ReasonPhrase},Content:{mapsResponse.Content}]" +
-                    $"\nINCOMING REQUEST HEADERS:[{req.Headers}]\nBODY:[{bodyStr}]");
+                    $"\nINCOMING REQUEST HEADERS:[{req.Headers}]\nBODY:[{requestBody}]");
                 return new StatusCodeResult(StatusCodes.Status500InternalServerError);
             }
 

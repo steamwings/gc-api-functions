@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Extensions.Logging.Abstractions;
+using FunctionsTests.Helpers;
 
 namespace FunctionsTests
 {
@@ -12,7 +13,14 @@ namespace FunctionsTests
     public class ValidateAddressTests
     {
         public TestContext TestContext { get; set; }
-        
+        private static string token;
+
+        [ClassInitialize]
+        public static void ValidateAddressInitialize(TestContext tc)
+        {
+            token = AuthTestHelper.GenerateValidJwt(TestHelper.MakeLogger());
+        }
+
         [TestCleanup]
         public void TestCleanup()
         {
@@ -36,6 +44,8 @@ namespace FunctionsTests
                 ),
             };
 
+            request.Headers.Add("Authorization", $"Bearer {token}");
+
             var response = Functions.ValidateAddress.Run(request, logger);
             response.Wait();
 
@@ -48,11 +58,12 @@ namespace FunctionsTests
         }
 
         [TestMethod]
-        public void TestSuccessJSON1()
+        public void TestSuccessJson1()
         {
             var logger = TestHelper.MakeLogger();
             var body = new { theater = "Gershwin Theatre", street = "222 W 51st St", city = "New York" };
             var mapsRequest = TestHelper.MakeRequest(body, logger);
+            mapsRequest.Headers.Add("Authorization", $"Bearer {token}");
 
             var response = Functions.ValidateAddress.Run(mapsRequest, logger);
             response.Wait();
@@ -81,6 +92,7 @@ namespace FunctionsTests
                     }
                 )
             };
+            request.Headers.Add("Authorization", $"Bearer {token}");
 
             var response = Functions.ValidateAddress.Run(request, logger);
             response.Wait();

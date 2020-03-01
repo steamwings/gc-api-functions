@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Microsoft.Azure.Documents.Client;
 using System.Net;
-using Functions.Helpers;
+using Functions.Authentication;
 using Models.User;
 
 namespace Functions
@@ -53,7 +53,7 @@ namespace Functions
             string hash;
             try
             {
-                hash = HashHelper.Hash(password, ref salt);
+                hash = AuthenticationHelper.Hash(password, ref salt);
                 log.LogTrace($"Generated hash: {hash}, salt: {salt}");
             }
             catch (FormatException e)
@@ -64,14 +64,18 @@ namespace Functions
 
             var coreUser = new CoreUser { email = email, name = name };
             var user = new GcUser { hash = hash, salt = salt, coreUser = coreUser};
+            // TODO CHECK FOR EXISTING USERS!!!
             var resp = await client.CreateDocumentAsync("dbs/userdb/colls/usercoll/", user) ;
             
             // TODO Log response body if debug mode ONLY - don't log PII
             log.LogDebug($"Status {(int) resp.StatusCode} for new user: {JsonConvert.SerializeObject(user)}");
                         
-            return resp.StatusCode == HttpStatusCode.Created
-                ? (IActionResult) new CreatedResult(resp.Resource.Id, coreUser)
-                : new StatusCodeResult((int)resp.StatusCode);
+            if(resp.StatusCode == HttpStatusCode.Created)
+            {
+                var token = AuthenticationHelper.GenerateJwt(email, log);
+                return new CreatedResult(resp.Resource.Id, new { coreUser.name, token });
+            }
+            return new StatusCodeResult((int)resp.StatusCode);
         }
     }
 }
