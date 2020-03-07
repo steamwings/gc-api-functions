@@ -1,5 +1,6 @@
 ﻿using FunctionsTests.Helpers;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Models.User;
 
@@ -15,7 +16,7 @@ namespace FunctionsTests
         {
             var endpoint = (string) TestContext.Properties["endpoint"];
             var authKey = (string) TestContext.Properties["authKey"];
-            DocumentDBRepository<GcUser>.Initialize(endpoint, authKey);
+            DocumentDBRepository<GcUser>.Initialize(endpoint, authKey, null, "/coreUser/email");
         }
 
         [TestCleanup]
@@ -25,6 +26,9 @@ namespace FunctionsTests
             TestHelper.Cleanup();
         }
 
+        /// <summary>
+        /// Test registration
+        /// </summary>
         [DataRow("A Name", "e@mail.com", "password")]
         [DataRow("A Looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong name",
             "e@mail.com", "P@$$$$$W)0RD")]
@@ -45,6 +49,9 @@ namespace FunctionsTests
             Assert.AreEqual(name, rName);
         }
 
+        /// <summary>
+        /// Test that you can login after registering
+        /// </summary>
         [DataRow("A Name", "e@mail.com", "password")]
         [DataRow("A Looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong name",
             "e@mail.com", "P@$$$$/W)\\0RD`^")]
@@ -65,6 +72,27 @@ namespace FunctionsTests
             Assert.IsNotNull(rToken);
             Assert.IsNotNull(rName);
             Assert.AreEqual(name, rName);
+        }
+
+        /// <summary>
+        /// Ensure we see a 409 conflict when registering the same person twice
+        /// </summary>
+        [DataRow("A Name", "e@mail.com", "password")]
+        [DataRow("A Looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong name",
+    "e@mail.com", "P@$$$$/W)\\0RD`^")]
+        [DataTestMethod]
+        public void RegisterConflict1(string name, string email, string password)
+        {
+            Register1(name, email, password);
+
+            var logger = TestHelper.MakeLogger();
+            var request = TestHelper.MakeRequest(new { name, email, password }, logger);
+
+            var result = Functions.Register.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
+
+            Assert.IsInstanceOfType(result, typeof(IStatusCodeActionResult));
+            var code = ((StatusCodeResult) result).StatusCode;
+            Assert.AreEqual(409, code); // Expect 409 Conflict
         }
 
     }

@@ -3,7 +3,6 @@ using Microsoft.Azure.Documents.Client;
 using Microsoft.Azure.Documents.Linq;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
@@ -74,13 +73,13 @@ namespace FunctionsTests
                 category is null ? null : new RequestOptions { PartitionKey = new PartitionKey(category) });
         }
 
-        public static void Initialize(string endpoint, string authKey, string partitionKey = null, string databaseId = DEFAULT_DB, string collectionId = DEFAULT_COL)
+        public static void Initialize(string endpoint, string authKey, string partitionKey = null, string uniqueKey = null, string databaseId = DEFAULT_DB, string collectionId = DEFAULT_COL)
         {
             DatabaseId = databaseId;
             CollectionId = collectionId;
             Client = new DocumentClient(new Uri(endpoint), authKey);
             CreateDatabaseIfNotExistsAsync().Wait();
-            CreateCollectionIfNotExistsAsync(partitionKey).Wait();
+            CreateCollectionIfNotExistsAsync(partitionKey, uniqueKey).Wait();
         }
 
         public static void Teardown()
@@ -107,7 +106,7 @@ namespace FunctionsTests
             }
         }
 
-        private static async Task CreateCollectionIfNotExistsAsync(string partitionkey = null, int throughputRus = 400)
+        private static async Task CreateCollectionIfNotExistsAsync(string partitionkey = null, string uniqueKey = null, int throughputRus = 400)
         {
             try
             {
@@ -135,8 +134,20 @@ namespace FunctionsTests
                             Paths = new System.Collections.ObjectModel.Collection<string>(new List<string>() { partitionkey })
                         };
                     }
+                    if (uniqueKey != null)
+                    {
+                        docColl.UniqueKeyPolicy = new UniqueKeyPolicy
+                        {
+                            UniqueKeys = new System.Collections.ObjectModel.Collection<UniqueKey>(new List<UniqueKey>
+                            {
+                                new UniqueKey { Paths = new System.Collections.ObjectModel.Collection<string>(new List<string> { 
+                                    uniqueKey, 
+                                }) },
+                            })
+                        };
+                    }
                     await Client.CreateDocumentCollectionAsync(
-                        UriFactory.CreateDatabaseUri(DatabaseId), docColl, 
+                        UriFactory.CreateDatabaseUri(DatabaseId), docColl,
                         new RequestOptions { OfferThroughput = throughputRus });
                 }
                 else

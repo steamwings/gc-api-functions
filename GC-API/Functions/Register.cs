@@ -11,6 +11,7 @@ using Microsoft.Azure.Documents.Client;
 using System.Net;
 using Functions.Authentication;
 using Models.User;
+using Microsoft.Azure.Documents;
 
 namespace Functions
 {
@@ -64,18 +65,37 @@ namespace Functions
 
             var coreUser = new CoreUser { email = email, name = name };
             var user = new GcUser { hash = hash, salt = salt, coreUser = coreUser};
-            // TODO CHECK FOR EXISTING USERS!!!
-            var resp = await client.CreateDocumentAsync("dbs/userdb/colls/usercoll/", user) ;
-            
-            // TODO Log response body if debug mode ONLY - don't log PII
-            log.LogDebug($"Status {(int) resp.StatusCode} for new user: {JsonConvert.SerializeObject(user)}");
-                        
-            if(resp.StatusCode == HttpStatusCode.Created)
+            HttpStatusCode statusCode = HttpStatusCode.InternalServerError;
+
+            try
             {
-                var token = AuthenticationHelper.GenerateJwt(email, log);
-                return new CreatedResult(resp.Resource.Id, new { coreUser.name, token });
+                var resp = await client.CreateDocumentAsync("dbs/userdb/colls/usercoll/", user);
+                statusCode = resp.StatusCode;
+                if (statusCode == HttpStatusCode.Created)
+                {
+                    var token = AuthenticationHelper.GenerateJwt(email, log);
+                    return new CreatedResult(resp.Resource.Id, new { coreUser.name, token });
+                }
+            } catch (DocumentClientException e)
+            {
+                switch (statusCode)
+                {
+                    case HttpStatusCode.TooManyRequests:
+                        log.LogCritical("Register got 429!");
+                        break;
+                    case HttpStatusCode.Forbidden: 
+                        log.LogCritical("Permissions issue or collection full!");
+                        break;
+                    default: 
+                        log.LogError(e, $"Register func got error ${e.StatusCode} for CreateDoc."); 
+                        break;
+                }
+                statusCode = e.StatusCode ?? HttpStatusCode.InternalServerError;
+            } finally
+            {
+                log.LogDebug($"Register status {(int) statusCode} for user: {JsonConvert.SerializeObject(user)}");
             }
-            return new StatusCodeResult((int)resp.StatusCode);
+            return new StatusCodeResult((int) statusCode);
         }
     }
 }

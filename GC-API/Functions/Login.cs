@@ -18,6 +18,9 @@ using System.Threading.Tasks;
 
 namespace Functions
 {
+    /// <summary>
+    /// Class for the Login Azure Function
+    /// </summary>
     public static class Login
     {
         [FunctionName("Login")]
