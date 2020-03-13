@@ -7,6 +7,7 @@ using JWT.Builder;
 using Microsoft.Extensions.Logging;
 using JWT;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Functions.Authentication
 {
@@ -17,7 +18,7 @@ namespace Functions.Authentication
         private static readonly string jwtSecret = Environment.GetEnvironmentVariable("AuthenticationSecret");
 
         /// <summary>
-        /// 
+        /// Hash 
         /// </summary>
         /// <param name="password"></param>
         /// <param name="salt">Pass by reference. When null, it will be generated.</param>
@@ -53,11 +54,22 @@ namespace Functions.Authentication
                 numBytesRequested: hashBits / 8));
         }
 
-        public static string GenerateJwt(string email, ILogger log)
+        /// <summary>
+        /// Generate a token with an email claim
+        /// </summary>
+        /// <returns>Token in string form</returns>
+        public static string GenerateJwt(ILogger log, string email)
         {
-            return GenerateJwt(new Dictionary<string, object> { { "email", email } }, log);
+            return GenerateJwt(log, new Dictionary<string, object> { { "email", email } });
         }
-        public static string GenerateJwt(Dictionary<string, object> claims, ILogger log)
+
+        /// <summary>
+        /// Generate a token with any claims
+        /// </summary>
+        /// <param name="log"></param>
+        /// <param name="claims">The claims to add to the token</param>
+        /// <returns></returns>
+        public static string GenerateJwt(ILogger log, IDictionary<string, object> claims)
         {
             if (!int.TryParse(Environment.GetEnvironmentVariable("SessionTokenDays"), out int days))
             {
@@ -73,47 +85,80 @@ namespace Functions.Authentication
                 .Encode();
         }
 
-        public static bool Authorize(IHeaderDictionary headers, ILogger log)
+        /// <summary>
+        /// Determine if a request is authorized based on its header, with no additional claims.
+        /// </summary>
+        /// <param name="log"></param>
+        /// <param name="headers">Request headers</param>
+        /// <param name="errorResponse"> When the return value is false, errorResponse is set to an ObjectResult
+        /// which can be returned in an MVC-style method </param>
+        /// <returns>True if authorized</returns>
+        public static bool Authorize(ILogger log, IHeaderDictionary headers, out ObjectResult errorResponse)
+        {
+            IDictionary<string, object> d = new Dictionary<string, object>();
+            return Authorize(log, headers, out errorResponse, ref d);
+        }
+
+        /// <summary>
+        /// Determine if a response is authorized based on its headers and validating any additional claims.
+        /// </summary>
+        /// <param name="log"></param>
+        /// <param name="headers">Request headers</param>
+        /// <param name="errorResponse">When the return value is false, errorResponse is set to an ObjectResult
+        /// which can be returned in an MVC-style method </param>
+        /// <param name="claims">Used to pass in additional claims to verify; when validation is successful, 
+        /// all claims are returned (not just any passed in) </param>
+        /// <returns></returns>
+        public static bool Authorize(ILogger log, IHeaderDictionary headers, out ObjectResult errorResponse, 
+            ref IDictionary<string, object> claims)
         {
             var authStart = "Bearer ";
             if (!headers.TryGetValue("Authorization", out var val) || val.Count != 1 || !val[0].StartsWith(authStart))
+            {
+                errorResponse = new UnauthorizedObjectResult("No credentials.");
                 return false;
-            return ValidateJwt(val[0].Remove(0, authStart.Length), log);
+            }
+            var jwt = val[0].Remove(0, authStart.Length);
+            switch (ValidateJwt(log, jwt, ref claims))
+            {
+                case JwtValidationResult.Valid:
+                    errorResponse = new ObjectResult("") { StatusCode = 500 }; // Should not be used
+                    return true;
+                case JwtValidationResult.Expired: 
+                    errorResponse = new UnauthorizedObjectResult("Expired token."); // Provide message
+                    return false;
+                case JwtValidationResult.InvalidSignature:
+                case JwtValidationResult.MissingOrInvalidClaim:
+                default:
+                    errorResponse = new UnauthorizedObjectResult(string.Empty);
+                    return false;
+            }
         }
 
-        /// <summary>
-        /// Validate a JWT with only default claims
-        /// </summary>
-        /// <param name="token"></param>
-        /// <param name="log"></param>
-        /// <returns></returns>
-        public static bool ValidateJwt(string token, ILogger log)
+        public enum JwtValidationResult
         {
-            IDictionary<string, object> d = new Dictionary<string, object>();
-            return ValidateJwt(token, ref d, log);
-        }
-
-        /// <summary>
-        /// Validate a JWT token and check that it has an email claim matching 'email'. Ignores other claims.
-        /// </summary>
-        /// <returns>true if validated</returns>
-        public static bool ValidateJwt(string token, string email, ILogger log)
-        {
-            IDictionary<string, object> d = new Dictionary<string, object> { { "email", email } };
-            return ValidateJwt(token, ref d, log);
+            Expired,
+            InvalidSignature,
+            MissingOrInvalidClaim,
+            Valid
         }
 
         /// <summary>
         /// Validate a JWT token with particular claims
         /// </summary>
         /// <param name="token"></param>
-        /// <param name="claims"> Pass in claims to validate; passes out all claims on the token. </param>
+        /// <param name="claims"> Pass in claims to validate; pass out all claims on the token. </param>
         /// <param name="log"></param>
         /// <returns>true if the token has a valid signature, is not expired, and matches any claims in 'claims'</returns>
-        public static bool ValidateJwt(string token, ref IDictionary<string, object> claims, ILogger log)
+        /// <remarks> Ideally, this method and JwtValidationResult enum should be internal or private, but 
+        /// I don't like the unit testing options then. It's also possible there are legitimate cases for 
+        /// ValidateJwt to be called from an Azure Function. 
+        /// </remarks>
+        public static JwtValidationResult ValidateJwt(ILogger log, string token, 
+            ref IDictionary<string, object> claims)
         {
             var claimsToValidate = claims ?? new Dictionary<string, object>();
-            claimsToValidate.Add("access", "true");
+            if (!claims.ContainsKey("access")) claimsToValidate.Add("access", "true");
 
             try
             {
@@ -126,21 +171,24 @@ namespace Functions.Authentication
             catch (TokenExpiredException)
             {
                 log.LogWarning("Expired token.");
-                return false;
+                return JwtValidationResult.Expired;
             }
             catch (SignatureVerificationException)
             {
                 log.LogWarning("Token has invalid signature.");
-                return false;
+                return JwtValidationResult.InvalidSignature;
             }
 
             foreach (var c in claimsToValidate)
             {
                 if (!claims.TryGetValue(c.Key, out var val) || !val.Equals(c.Value))
-                    return false;
+                {
+                    log.LogWarning($"Missing or invalid claim '{c.Key}'");
+                    return JwtValidationResult.MissingOrInvalidClaim;
+                }
             }
 
-            return true;
+            return JwtValidationResult.Valid;
         }
 
     }

@@ -16,7 +16,7 @@ namespace FunctionsTests.Helpers
 
         public static string GenerateValidJwt(ILogger log, string email="e@mail.com")
         {
-           return AuthenticationHelper.GenerateJwt(email, log);
+           return AuthenticationHelper.GenerateJwt(log, email);
         }
     }
 }

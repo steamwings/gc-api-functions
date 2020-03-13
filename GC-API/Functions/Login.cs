@@ -51,27 +51,37 @@ namespace Functions
                 return new BadRequestObjectResult($"Missing parameter ${nullName}.");
             }
 
-            GcUser user;
-            if(userDocId != null)
+            GcUser user = null; // We need to get the user's salt
+            if(userDocId != null) // With the document id, we can read the document directly
             {
                 var resp = await client.ReadDocumentAsync<GcUser>($"dbs/userdb/colls/usercoll/docs/{userDocId}");
-                if (!resp.IsSuccessStatusCode())
+                if (resp.IsSuccessStatusCode())
+                {
+                    user = resp.Document;
+                    if(user.coreUser.email != email)
+                    {
+                        log.LogError("Email mismatch for user retrieved with userDocId!");
+                        log.LogDebug($"DocId: {userDocId} | Email in doc: {user.coreUser.email} | Email in request: {email}");
+                        return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+                    }
+                } 
+                else 
                 {
                     switch (resp.StatusCode)
                     {
                         case HttpStatusCode.NotFound:
-                            return new NotFoundResult();
+                            log.LogWarning("A request which included the userDocId got a 404 for that document.");
+                            break; // We can try searching for the user
                         case HttpStatusCode.TooManyRequests:
                             log.LogCritical("Request denied due to lack of RUs (429)!");
                             return new StatusCodeResult(StatusCodes.Status500InternalServerError);
                         default:
-                            var method = userDocId is null ? "CreateDocumentQuery" : "ReadDocumentAsync";
-                            log.LogInformation($"Cosmos {method} call failed with {resp.StatusCode}");
+                            log.LogInformation($"Cosmos ReadDoc call failed with {resp.StatusCode}");
                             return new StatusCodeResult(StatusCodes.Status500InternalServerError);
                     }
                 }
-                user = resp.Document;
-            } else {
+            }
+            if (user is null) {// Without the document id, we need to find the user
                 var users = client.CreateDocumentQuery<GcUser>("dbs/userdb/colls/usercoll")
                     .Where(u => u.coreUser.email == email);
                 switch (users.Count())
@@ -90,7 +100,7 @@ namespace Functions
             string salt = user.salt;
             if (user.hash == AuthenticationHelper.Hash(password, ref salt))
             {
-                var token = AuthenticationHelper.GenerateJwt(email, log);
+                var token = AuthenticationHelper.GenerateJwt(log, email);
                 return new OkObjectResult(new { user.coreUser.name, token });
             } else {
                 // TODO Save failed login attempts somewhere so we can notify users

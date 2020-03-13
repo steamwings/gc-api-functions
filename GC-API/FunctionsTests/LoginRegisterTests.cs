@@ -1,4 +1,5 @@
 ﻿using FunctionsTests.Helpers;
+using FunctionsTests.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.VisualStudio.TestTools.UnitTesting;

@@ -7,7 +7,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 
-namespace FunctionsTests
+namespace FunctionsTests.Helpers
 {
     public static class DocumentDBRepository<T> where T : class
     {

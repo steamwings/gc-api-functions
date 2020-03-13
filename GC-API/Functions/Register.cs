@@ -73,7 +73,7 @@ namespace Functions
                 statusCode = resp.StatusCode;
                 if (statusCode == HttpStatusCode.Created)
                 {
-                    var token = AuthenticationHelper.GenerateJwt(email, log);
+                    var token = AuthenticationHelper.GenerateJwt(log, email);
                     return new CreatedResult(resp.Resource.Id, new { coreUser.name, token });
                 }
             } catch (DocumentClientException e)

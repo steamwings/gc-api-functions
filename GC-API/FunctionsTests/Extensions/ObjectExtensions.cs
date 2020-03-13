@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace FunctionsTests.Helpers
+﻿namespace FunctionsTests.Extensions
 {
     public static class ObjectExtensions
     {
