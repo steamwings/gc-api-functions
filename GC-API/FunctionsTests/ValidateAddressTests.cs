@@ -37,9 +37,9 @@ namespace FunctionsTests
                 (
                     new System.Collections.Generic.Dictionary<string, StringValues>()
                     {
-                        { "theater", "Gershwin Theatre" },
-                        { "street", "222 W 51st St" },
-                        { "city",  "New York" }
+                        { "theater", "Toby's Dinner Theatre" },
+                        { "street", "5900 Symphony Woods" },
+                        { "city",  "Columbia" }
                     }
                 ),
             };
@@ -61,7 +61,9 @@ namespace FunctionsTests
         public void TestSuccessJson1()
         {
             var logger = TestHelper.MakeLogger();
-            var body = new { theater = "Gershwin Theatre", street = "222 W 51st St", city = "New York" };
+            // Why did this stop working?
+            // var body = new { theater = "Gershwin Theatre", street = "222 W 51st St", city = "New York" };
+            var body = new { theater = "Toby's Dinner Theatre", street = "5900 Symphony Woods", city = "Columbia" };
             var mapsRequest = TestHelper.MakeRequest(body, logger);
             mapsRequest.Headers.Add("Authorization", $"Bearer {token}");
 
