@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using JWT;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Functions.Configuration;
 
 namespace Functions.Authentication
 {
@@ -15,7 +16,7 @@ namespace Functions.Authentication
     {
         private const int saltBits = 128;
         private const int hashBits = 512;
-        private static readonly string jwtSecret = Environment.GetEnvironmentVariable("AuthenticationSecret");
+        private static readonly string jwtSecret = FunctionsConfiguration.Get(ConfigValues.AuthenticationSecret);
 
         /// <summary>
         /// Hash 
@@ -64,20 +65,24 @@ namespace Functions.Authentication
         }
 
         /// <summary>
-        /// Generate a token with any claims
+        /// Generate a token with the given parameters 
         /// </summary>
         /// <param name="log"></param>
-        /// <param name="claims">The claims to add to the token</param>
+        /// <param name="claims"></param>
+        /// <param name="expiration"></param>
+        /// <param name="fallbackSessionDays">This value is only used if the configuration variable is not found by conventional means</param>
         /// <returns></returns>
-        public static string GenerateJwt(ILogger log, IDictionary<string, object> claims)
+        public static string GenerateJwt(ILogger log, IDictionary<string, object> claims = null, 
+            DateTimeOffset? expiration = null, double fallbackSessionDays = 2)
         {
-            if (!int.TryParse(Environment.GetEnvironmentVariable("SessionTokenDays"), out int days))
+            if (!double.TryParse(FunctionsConfiguration.Get(ConfigValues.SessionTokenDays), out double days))
             {
-                log?.LogWarning("Invalid value for 'SessionTokenDays' (should be an integer)");
-                days = 4;
+                days = fallbackSessionDays;
+                log?.LogWarning($"Invalid value for 'SessionTokenDays'. Defaulting to ${fallbackSessionDays}.");
             }
+            claims ??= new Dictionary<string, object>();
             claims.Add("access", "true"); // Basic claim that is always checked
-            claims.Add("exp", DateTimeOffset.Now.AddDays(days).ToUnixTimeSeconds());
+            claims.Add("exp", (expiration ?? DateTimeOffset.Now).AddDays(days).ToUnixTimeSeconds());
             return new JwtBuilder()
                 .WithAlgorithm(new HMACSHA256Algorithm())
                 .WithSecret(jwtSecret)
@@ -86,7 +91,7 @@ namespace Functions.Authentication
         }
 
         /// <summary>
-        /// Determine if a request is authorized based on its header, with no additional claims.
+        /// Determine if a request is authorized based on its header, with only default claims.
         /// </summary>
         /// <param name="log"></param>
         /// <param name="headers">Request headers</param>
@@ -100,7 +105,7 @@ namespace Functions.Authentication
         }
 
         /// <summary>
-        /// Determine if a response is authorized based on its headers and validating any additional claims.
+        /// Determine if a response is authorized based on its headers and validating any additional <paramref name="claims"/>.
         /// </summary>
         /// <param name="log"></param>
         /// <param name="headers">Request headers</param>
@@ -144,7 +149,7 @@ namespace Functions.Authentication
         }
 
         /// <summary>
-        /// Validate a JWT token with particular claims
+        /// Validate a JWT token with <paramref name="claims"/>
         /// </summary>
         /// <param name="token"></param>
         /// <param name="claims"> Pass in claims to validate; pass out all claims on the token. </param>

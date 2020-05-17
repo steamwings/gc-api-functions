@@ -10,8 +10,9 @@ using Newtonsoft.Json;
 using Microsoft.Azure.Documents.Client;
 using System.Net;
 using Functions.Authentication;
-using Models.User;
 using Microsoft.Azure.Documents;
+using Models.Common.User;
+using Models.Database.User;
 
 namespace Functions
 {

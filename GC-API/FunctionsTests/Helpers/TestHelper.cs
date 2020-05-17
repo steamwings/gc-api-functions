@@ -14,6 +14,12 @@ namespace FunctionsTests.Helpers
     [TestClass]
     public class TestHelper
     {
+        public static readonly List<(string name, string email, string password)> TestUsers = new List<(string, string, string)> {
+            ("A Name", "e@mail.com", "password"),
+            ("A Looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong name",
+                "e@mail.com", "P@$$$$/W)\\0RD`^")
+        };
+
         private static StreamWriter sw = null;
         private static StreamReader sr = null;
         private static ILoggerFactory lf = LoggerFactory.Create(builder =>

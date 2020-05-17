@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Extensions.Logging.Abstractions;
 using FunctionsTests.Helpers;
+using System.Collections.Generic;
 
 namespace FunctionsTests
 {
@@ -28,14 +29,14 @@ namespace FunctionsTests
         }
 
         [TestMethod]
-        public void TestSuccessQuery1()
+        public void TestSuccessQuery()
         {
             var logger = TestHelper.MakeLogger();
             var request = new DefaultHttpRequest(new DefaultHttpContext())
             {
                 Query = new QueryCollection
                 (
-                    new System.Collections.Generic.Dictionary<string, StringValues>()
+                    new Dictionary<string, StringValues>()
                     {
                         { "theater", "Toby's Dinner Theatre" },
                         { "street", "5900 Symphony Woods" },
@@ -49,16 +50,16 @@ namespace FunctionsTests
             var response = Functions.ValidateAddress.Run(request, logger);
             response.Wait();
 
-            // Check that the response is an "OK" response
+            // Check that the response is "OK"
             Assert.IsInstanceOfType(response.Result, typeof(OkObjectResult));
 
             // Check that the contents of the response are the expected contents
-            var v = ((OkObjectResult)response.Result).Value;
-            Assert.AreEqual("True",v);
+            var value = ((OkObjectResult)response.Result).Value;
+            Assert.AreEqual("True", value);
         }
 
         [TestMethod]
-        public void TestSuccessJson1()
+        public void TestSuccessJson()
         {
             var logger = TestHelper.MakeLogger();
             // Why did this stop working?
@@ -70,12 +71,10 @@ namespace FunctionsTests
             var response = Functions.ValidateAddress.Run(mapsRequest, logger);
             response.Wait();
 
-            // Check that the response is an "OK" response
             Assert.IsInstanceOfType(response.Result, typeof(OkObjectResult));
 
-            // Check that the contents of the response are the expected contents
-            var v = ((OkObjectResult) response.Result).Value;
-            Assert.AreEqual("True", v);
+            var value = ((OkObjectResult) response.Result).Value;
+            Assert.AreEqual("True", value);
         }
 
         [TestMethod]
@@ -87,7 +86,7 @@ namespace FunctionsTests
             {
                 Query = new QueryCollection
                 (
-                    new System.Collections.Generic.Dictionary<string, StringValues>()
+                    new Dictionary<string, StringValues>()
                     {
                         { "street", "222 W 51st St" },
                         { "city",  "New York" }
@@ -101,10 +100,10 @@ namespace FunctionsTests
 
             Assert.IsInstanceOfType(response.Result, typeof(BadRequestObjectResult));
 
-            // Check that the contents of the response are the expected contents
-            var result = (BadRequestObjectResult)response.Result;
+            var result = (BadRequestObjectResult) response.Result;
             Assert.IsInstanceOfType(result.Value, typeof(string));
-            string msg = ((string)result.Value);
+            
+            string msg = ((string) result.Value);
             Assert.IsTrue(msg.Contains("missing", StringComparison.OrdinalIgnoreCase));
         }
     }

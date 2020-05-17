@@ -110,13 +110,14 @@ namespace FunctionsTests.Helpers
         {
             try
             {
+                var uri = UriFactory.CreateDocumentCollectionUri(DatabaseId, CollectionId);
                 if (partitionkey is null)
                 {
-                    await Client.ReadDocumentCollectionAsync(UriFactory.CreateDocumentCollectionUri(DatabaseId, CollectionId));
+                    await Client.ReadDocumentCollectionAsync(uri);
                 }
                 else
                 {
-                    await Client.ReadDocumentCollectionAsync(UriFactory.CreateDocumentCollectionUri(DatabaseId, CollectionId), new RequestOptions { PartitionKey = new PartitionKey(partitionkey) });
+                    await Client.ReadDocumentCollectionAsync(uri, new RequestOptions { PartitionKey = new PartitionKey(partitionkey) });
                 }
             }
             catch (DocumentClientException e)

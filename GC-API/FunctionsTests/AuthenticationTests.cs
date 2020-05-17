@@ -36,13 +36,19 @@ namespace FunctionsTests
         public void GenerateAuthorizeBasic()
         {
             var logger = TestHelper.MakeLogger();
-            IDictionary<string, object> d = new Dictionary<string, object>();
-            var token = AuthenticationHelper.GenerateJwt(logger, d);
+            var token = AuthenticationHelper.GenerateJwt(logger, new Dictionary<string, object>());
             HttpRequest request = new DefaultHttpRequest(new DefaultHttpContext()) { };
             request.Headers.Add("Authorization", $"Bearer {token}");
             bool result = AuthenticationHelper.Authorize(logger, request.Headers, out var resp);
             logger.LogDebug($"Status code: {(int) resp.StatusCode}");
             Assert.AreEqual(true, result);
+        }
+
+        [TestMethod]
+        public void ExpiredToken()
+        {
+            var logger = TestHelper.MakeLogger();
+            // TODO
         }
     }
 }
