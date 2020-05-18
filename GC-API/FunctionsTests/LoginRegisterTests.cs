@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Models.Database.User;
-using System.Collections.Generic;
 
 namespace FunctionsTests
 {

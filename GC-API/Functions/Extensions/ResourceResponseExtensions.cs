@@ -7,7 +7,7 @@ namespace Functions.Extensions
         public static bool IsSuccessStatusCode(this ResourceResponseBase resp)
         {
             int statusCode = (int) resp.StatusCode;
-            return (statusCode >= 200) && (statusCode <= 299); ;
+            return statusCode >= 200 && statusCode <= 299;
         }
     }
 }

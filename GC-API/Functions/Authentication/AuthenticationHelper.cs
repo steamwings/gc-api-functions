@@ -82,7 +82,7 @@ namespace Functions.Authentication
             }
             claims ??= new Dictionary<string, object>();
             claims.Add("access", "true"); // Basic claim that is always checked
-            claims.Add("exp", (expiration ?? DateTimeOffset.Now).AddDays(days).ToUnixTimeSeconds());
+            claims.Add("exp", (expiration ?? DateTimeOffset.Now.AddDays(days)).ToUnixTimeSeconds());
             return new JwtBuilder()
                 .WithAlgorithm(new HMACSHA256Algorithm())
                 .WithSecret(jwtSecret)
