@@ -3,7 +3,7 @@ using FunctionsTests.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Models.User;
+using Models.Database.User;
 
 namespace FunctionsTests
 {
@@ -11,7 +11,7 @@ namespace FunctionsTests
     public class LoginRegisterTests
     {
         public TestContext TestContext { get; set; }
-               
+
         [TestInitialize]
         public void Initialize()
         {
@@ -27,47 +27,96 @@ namespace FunctionsTests
             TestHelper.Cleanup();
         }
 
+        #region Register Positive
+
         /// <summary>
         /// Test registration
         /// </summary>
-        [DataRow("A Name", "e@mail.com", "password")]
-        [DataRow("A Looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong name",
-            "e@mail.com", "P@$$$$$W)0RD")]
+        [DataRow(0)]
+        [DataRow(1)]
         [DataTestMethod]
-        public void Register1(string name, string email, string password)
+        public void Register(int testUserIndex)
         {
+            var (name, email, password) = TestHelper.TestUsers[testUserIndex];
             var logger = TestHelper.MakeLogger();
             var request = TestHelper.MakeRequest(new { name, email, password }, logger);
 
             var result = Functions.Register.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
 
             Assert.IsInstanceOfType(result, typeof(CreatedResult));
-            var value = ((CreatedResult) result).Value;
+            var value = ((CreatedResult)result).Value;
             var rName = value.GetPropertyValue<string>("name");
             var rToken = value.GetPropertyValue<string>("token");
             Assert.IsNotNull(rToken);
             Assert.IsNotNull(rName);
             Assert.AreEqual(name, rName);
         }
+
+        #endregion
+        #region Register Negative
+        
+        /// <summary>
+        /// Ensure we see a 409 conflict when registering the same person twice
+        /// </summary>
+        [DataRow(0)]
+        [DataRow(1)]
+        [DataTestMethod]
+        public void RegisterConflict(int testUserIndex)
+        {
+            var (name, email, password) = TestHelper.TestUsers[testUserIndex];
+            var logger = TestHelper.MakeLogger();
+            var request = TestHelper.MakeRequest(new { name, email, password }, logger);
+
+            Register(testUserIndex);
+            var result = Functions.Register.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
+
+            Assert.IsInstanceOfType(result, typeof(IStatusCodeActionResult));
+            var code = ((IStatusCodeActionResult) result).StatusCode;
+            Assert.AreEqual(409, code); // Expect 409 Conflict
+        }
+
+        [DataRow("name")]
+        [DataRow("email")]
+        [DataRow("password")]
+        [DataTestMethod]
+        public void RegisterMissingParameter(string propertyToNull)
+        {
+            var logger = TestHelper.MakeLogger();
+            var (name, email, password) = TestHelper.TestUsers[0];
+            var requestBodyValues = new { name, email, password };
+            requestBodyValues.SetAnonymousObjectProperty(propertyToNull, null);
+            var request = TestHelper.MakeRequest(requestBodyValues, logger);
+
+            var result = Functions.Register.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
+
+            Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
+            var value = ((BadRequestObjectResult) result).Value;
+            Assert.IsInstanceOfType(value, typeof(string));
+            Assert.IsTrue(((string) value).Contains(propertyToNull));
+
+        }
+
+        #endregion
+        #region RegisterLogin Positive
 
         /// <summary>
         /// Test that you can login after registering
         /// </summary>
-        [DataRow("A Name", "e@mail.com", "password")]
-        [DataRow("A Looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong name",
-            "e@mail.com", "P@$$$$/W)\\0RD`^")]
+        [DataRow(0)]
+        [DataRow(1)]
         [DataTestMethod]
-        public void RegisterLogin1(string name, string email, string password)
+        public void RegisterLogin(int testUserIndex)
         {
-            Register1(name, email, password);
+            var (name, email, password) = TestHelper.TestUsers[testUserIndex];
+            Register(testUserIndex);
 
             var logger = TestHelper.MakeLogger();
             var request = TestHelper.MakeRequest(new { email, password }, logger);
-            
+
             var result = Functions.Login.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
 
             Assert.IsInstanceOfType(result, typeof(OkObjectResult));
-            var value = ((OkObjectResult) result).Value;
+            var value = ((OkObjectResult)result).Value;
             var rName = value.GetPropertyValue<string>("name");
             var rToken = value.GetPropertyValue<string>("token");
             Assert.IsNotNull(rToken);
@@ -75,26 +124,30 @@ namespace FunctionsTests
             Assert.AreEqual(name, rName);
         }
 
-        /// <summary>
-        /// Ensure we see a 409 conflict when registering the same person twice
-        /// </summary>
-        [DataRow("A Name", "e@mail.com", "password")]
-        [DataRow("A Looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong name",
-    "e@mail.com", "P@$$$$/W)\\0RD`^")]
+        #endregion
+        #region RegisterLogin Negative
+
+        [DataRow("email")]
+        [DataRow("password")]
         [DataTestMethod]
-        public void RegisterConflict1(string name, string email, string password)
+        public void LoginMissingParameter(string propertyToNull)
         {
-            Register1(name, email, password);
-
+            var testUserIndex = 0;
+            Register(testUserIndex);
             var logger = TestHelper.MakeLogger();
-            var request = TestHelper.MakeRequest(new { name, email, password }, logger);
+            var (name, email, password) = TestHelper.TestUsers[testUserIndex];
+            var requestBodyValues = new { email, password };
+            requestBodyValues.SetAnonymousObjectProperty(propertyToNull, null);
+            var request = TestHelper.MakeRequest(requestBodyValues, logger);
 
-            var result = Functions.Register.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
+            var result = Functions.Login.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
 
-            Assert.IsInstanceOfType(result, typeof(IStatusCodeActionResult));
-            var code = ((StatusCodeResult) result).StatusCode;
-            Assert.AreEqual(409, code); // Expect 409 Conflict
+            Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
+            var value = ((BadRequestObjectResult)result).Value;
+            Assert.IsInstanceOfType(value, typeof(string));
+            Assert.IsTrue(((string) value).Contains(propertyToNull));
         }
 
+        #endregion
     }
 }
