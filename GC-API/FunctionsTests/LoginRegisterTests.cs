@@ -27,6 +27,8 @@ namespace FunctionsTests
             TestHelper.Cleanup();
         }
 
+        #region Register Positive
+
         /// <summary>
         /// Test registration
         /// </summary>
@@ -49,6 +51,53 @@ namespace FunctionsTests
             Assert.IsNotNull(rName);
             Assert.AreEqual(name, rName);
         }
+
+        #endregion
+        #region Register Negative
+        
+        /// <summary>
+        /// Ensure we see a 409 conflict when registering the same person twice
+        /// </summary>
+        [DataRow(0)]
+        [DataRow(1)]
+        [DataTestMethod]
+        public void RegisterConflict(int testUserIndex)
+        {
+            var (name, email, password) = TestHelper.TestUsers[testUserIndex];
+            var logger = TestHelper.MakeLogger();
+            var request = TestHelper.MakeRequest(new { name, email, password }, logger);
+
+            Register(testUserIndex);
+            var result = Functions.Register.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
+
+            Assert.IsInstanceOfType(result, typeof(IStatusCodeActionResult));
+            var code = ((IStatusCodeActionResult) result).StatusCode;
+            Assert.AreEqual(409, code); // Expect 409 Conflict
+        }
+
+        [DataRow("name")]
+        [DataRow("email")]
+        [DataRow("password")]
+        [DataTestMethod]
+        public void RegisterMissingParameter(string propertyToNull)
+        {
+            var logger = TestHelper.MakeLogger();
+            var (name, email, password) = TestHelper.TestUsers[0];
+            var requestBodyValues = new { name, email, password };
+            requestBodyValues.SetAnonymousObjectProperty(propertyToNull, null);
+            var request = TestHelper.MakeRequest(requestBodyValues, logger);
+
+            var result = Functions.Register.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
+
+            Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
+            var value = ((BadRequestObjectResult) result).Value;
+            Assert.IsInstanceOfType(value, typeof(string));
+            Assert.IsTrue(((string) value).Contains(propertyToNull));
+
+        }
+
+        #endregion
+        #region RegisterLogin Positive
 
         /// <summary>
         /// Test that you can login after registering
@@ -75,25 +124,30 @@ namespace FunctionsTests
             Assert.AreEqual(name, rName);
         }
 
-        /// <summary>
-        /// Ensure we see a 409 conflict when registering the same person twice
-        /// </summary>
-        [DataRow(0)]
-        [DataRow(1)]
+        #endregion
+        #region RegisterLogin Negative
+
+        [DataRow("email")]
+        [DataRow("password")]
         [DataTestMethod]
-        public void RegisterConflict(int testUserIndex)
+        public void LoginMissingParameter(string propertyToNull)
         {
-            var (name, email, password) = TestHelper.TestUsers[testUserIndex];
+            var testUserIndex = 0;
             Register(testUserIndex);
-
             var logger = TestHelper.MakeLogger();
-            var request = TestHelper.MakeRequest(new { name, email, password }, logger);
+            var (name, email, password) = TestHelper.TestUsers[testUserIndex];
+            var requestBodyValues = new { email, password };
+            requestBodyValues.SetAnonymousObjectProperty(propertyToNull, null);
+            var request = TestHelper.MakeRequest(requestBodyValues, logger);
 
-            var result = Functions.Register.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
+            var result = Functions.Login.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
 
-            Assert.IsInstanceOfType(result, typeof(IStatusCodeActionResult));
-            var code = ((StatusCodeResult)result).StatusCode;
-            Assert.AreEqual(409, code); // Expect 409 Conflict
+            Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
+            var value = ((BadRequestObjectResult)result).Value;
+            Assert.IsInstanceOfType(value, typeof(string));
+            Assert.IsTrue(((string) value).Contains(propertyToNull));
         }
+
+        #endregion
     }
 }

@@ -13,6 +13,7 @@ using Functions.Authentication;
 using Microsoft.Azure.Documents;
 using Models.Common.User;
 using Models.Database.User;
+using Functions.Extensions;
 
 namespace Functions
 {
@@ -21,7 +22,7 @@ namespace Functions
     /// </summary>
     public static class Register
     {
-        [FunctionName("Register")]
+        [FunctionName(nameof(Register))]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req,
             [CosmosDB(
@@ -30,7 +31,7 @@ namespace Functions
                 ConnectionStringSetting = "CosmosDBConnection")] DocumentClient client,
             ILogger log)
         {
-            log.LogInformation($"Processing register request...");
+            log.LogInformation($"{nameof(Register)}: processing request...");
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             dynamic data = JsonConvert.DeserializeObject(requestBody);
@@ -39,16 +40,8 @@ namespace Functions
             string email = data?.email;
             string password = data?.password; // should be presalted by front-end
 
-            string nullName = 0 switch { // Obtuse null check
-                _ when name is null => nameof(name),
-                _ when email is null => nameof(email),
-                _ when password is null => nameof(password),
-                _ => "none"
-            };
-
-            if (nullName != "none") {
-                log.LogWarning($"Parameter {nullName} cannot be null.");
-                return new BadRequestObjectResult($"Missing parameter ${nullName}.");
+            if(log.NullWarning(new {name, email, password}, out string nullNames)) {
+                return new BadRequestObjectResult($"Missing parameter(s) {nullNames}");
             }
 
             string salt = null; // assignment required because it's passed with ref
@@ -65,7 +58,7 @@ namespace Functions
             }
 
             var coreUser = new CoreUser { email = email, name = name };
-            var user = new GcUser { hash = hash, salt = salt, coreUser = coreUser};
+            var user = new GcUser { hash = hash, salt = salt, coreUser = coreUser };
             HttpStatusCode statusCode = HttpStatusCode.InternalServerError;
 
             try
@@ -82,19 +75,19 @@ namespace Functions
                 switch (statusCode)
                 {
                     case HttpStatusCode.TooManyRequests:
-                        log.LogCritical("Register got 429!");
+                        log.LogCritical($"{nameof(Register)}: got 429!");
                         break;
                     case HttpStatusCode.Forbidden: 
-                        log.LogCritical("Permissions issue or collection full!");
+                        log.LogCritical($"{nameof(Register)}: got permissions issue or collection full!");
                         break;
                     default: 
-                        log.LogError(e, $"Register func got error ${e.StatusCode} for CreateDoc."); 
+                        log.LogError(e, $"{nameof(Register)}: got error ${e.StatusCode} for CreateDoc."); 
                         break;
                 }
                 statusCode = e.StatusCode ?? HttpStatusCode.InternalServerError;
             } finally
             {
-                log.LogDebug($"Register status {(int) statusCode} for user: {JsonConvert.SerializeObject(user)}");
+                log.LogDebug($"{nameof(Register)}: status {(int) statusCode} for user: {JsonConvert.SerializeObject(user)}");
             }
             return new StatusCodeResult((int) statusCode);
         }

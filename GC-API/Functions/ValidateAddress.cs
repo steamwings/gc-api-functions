@@ -10,6 +10,7 @@ using Newtonsoft.Json;
 using System.Net.Http;
 using Functions.Authentication;
 using Functions.Extensions;
+using System.Web;
 
 namespace Functions
 {
@@ -44,27 +45,18 @@ namespace Functions
             city ??= data?.city;
             state ??= data?.state; //TODO This probably isn't needed
 
-            // Obtuse null check
-            string nullName = 0 switch
+            if (log.NullWarning(new { theater, street, city }, out string nullNames))
             {
-                _ when theater is null => nameof(theater),
-                _ when street is null => nameof(street),
-                _ when city is null => nameof(city),
-                _ => "none"
-            };
-
-            if (nullName != "none")
-            {
-                log.LogDebug($"Field {nullName} is missing.");
-                return new BadRequestObjectResult($"{nullName} missing. Theater, street, and city must appear in query string or JSON request body.");
+                return new BadRequestObjectResult($"Missing parameter(s) {nullNames}");
             }
 
             // Generate a search URL
-            string searchUrl = "https://www.google.com/maps/search/";
-            searchUrl += street + ',' + city;
-            if (!string.IsNullOrEmpty(state)) 
-                searchUrl += ',' + state;
-            searchUrl = searchUrl.Replace(' ', '+') + "/";
+            string searchUrl = "https://www.google.com/maps/search/" + HttpUtility.UrlEncode(theater);
+            //searchUrl += street + ',' + city;
+            //if (!string.IsNullOrEmpty(state)) 
+            //    searchUrl += ',' + state;
+            //searchUrl = searchUrl.Replace(' ', '+') + "/";
+
 
             HttpResponseMessage mapsResponse = await client.GetAsync(searchUrl);
             string responseBody = await mapsResponse.Content.ReadAsStringAsync();
@@ -77,7 +69,8 @@ namespace Functions
                 return new StatusCodeResult(StatusCodes.Status500InternalServerError);
             }
 
-            bool result = responseBody.Contains(theater);
+            var expected = $"{theater}, {street}, {city}" + (string.IsNullOrEmpty(state) ? "" : $", {state}");
+            bool result = responseBody.Contains(expected);
             log.LogInformation($"Theater '{theater}' IS {(result ? "" : "NOT")} located near " +
                 $"{street}, {city}{(String.IsNullOrEmpty(state) ? "" : (", " + state))}");
             return new OkObjectResult($"{result}");

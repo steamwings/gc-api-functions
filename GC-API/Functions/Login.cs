@@ -23,14 +23,14 @@ namespace Functions
     /// </summary>
     public static class Login
     {
-        [FunctionName("Login")]
+        [FunctionName(nameof(Login))]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req,
             [CosmosDB("userdb","usercoll",
             ConnectionStringSetting = "CosmosDBConnection")] DocumentClient client,
             ILogger log)
         {
-            log.LogTrace("Processing register request...");
+            log.LogTrace($"{nameof(Login)}: processing request...");
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             dynamic data = JsonConvert.DeserializeObject(requestBody);
@@ -38,17 +38,9 @@ namespace Functions
             string password = data?.password;
             string userDocId = data?.userId;
 
-            string nullName = 0 switch // Obtuse null check
+            if (log.NullWarning(new { email, password }, out string nullNames))
             {
-                _ when email is null => nameof(email),
-                _ when password is null => nameof(password),
-                _ => "none"
-            };
-
-            if (nullName != "none")
-            {
-                log.LogWarning($"Parameter {nullName} cannot be null.");
-                return new BadRequestObjectResult($"Missing parameter ${nullName}.");
+                return new BadRequestObjectResult($"Missing parameter(s) {nullNames}");
             }
 
             GcUser user = null; // We need to get the user's salt
