@@ -82,8 +82,8 @@ namespace FunctionsTests
         }
 
         [DataRow(1)]
-        [DataRow(.1)] // TODO
-        [DataRow(0)] // TODO
+        [DataRow(.1)]
+        [DataRow(0)]
         [DataTestMethod]
         public void AuthorizeExpiredNegative(double daysExpired)
         {
