@@ -9,6 +9,13 @@ using System.Threading.Tasks;
 
 namespace FunctionsTests.Helpers
 {
+    /// <summary>
+    /// Convenient wrapper for <see cref="DocumentClient"/> with basic configuration methods for a single type, single collection, single database repository
+    /// </summary>
+    /// <typeparam name="T">The type stored in this repository</typeparam>
+    /// <remarks>
+    /// Since it is static, only one instance can exist per type at a time. (This format is convenient for unit testing.)
+    /// </remarks>
     public static class DocumentDBRepository<T> where T : class
     {
         private const string DEFAULT_DB = "userdb";
@@ -160,7 +167,7 @@ namespace FunctionsTests.Helpers
 
         private static async Task DeleteDatabaseAsync()
         {
-            await Client.DeleteDatabaseAsync((UriFactory.CreateDatabaseUri(DatabaseId)));
+            await Client.DeleteDatabaseAsync(UriFactory.CreateDatabaseUri(DatabaseId));
         }
     }
 }

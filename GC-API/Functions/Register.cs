@@ -13,7 +13,7 @@ using Functions.Authentication;
 using Microsoft.Azure.Documents;
 using Models.Common.User;
 using Models.Database.User;
-using Functions.Extensions;
+using Common.Extensions;
 
 namespace Functions
 {
@@ -40,9 +40,11 @@ namespace Functions
             string email = data?.email;
             string password = data?.password; // should be presalted by front-end
 
-            if(log.NullWarning(new {name, email, password}, out string nullNames)) {
+            if(log.NullWarning(new {name, email, password}, out string nullNames))
                 return new BadRequestObjectResult($"Missing parameter(s) {nullNames}");
-            }
+            
+            if (!email.TryConvertToBase64(out var email64))
+                return new BadRequestObjectResult($"Invalid email.");
 
             string salt = null; // assignment required because it's passed with ref
             string hash;
@@ -57,8 +59,8 @@ namespace Functions
                 return new BadRequestObjectResult("Invalid password hash.");
             }
 
-            var coreUser = new CoreUser { email = email, name = name };
-            var user = new GcUser { hash = hash, salt = salt, coreUser = coreUser };
+            var coreUser = new UserCore { email64 = email64, name = name };
+            var user = new GcUser { hash = hash, salt = salt, userCore = coreUser };
             HttpStatusCode statusCode = HttpStatusCode.InternalServerError;
 
             try

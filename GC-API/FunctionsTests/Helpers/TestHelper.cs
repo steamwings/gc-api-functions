@@ -34,6 +34,7 @@ namespace FunctionsTests.Helpers
         [AssemblyInitialize]
         public static void Init(TestContext testContext)
         {
+            ClearCosmosDb(testContext);
             AuthTestHelper.PrepareForJwtOperations(testContext);
         }
 
@@ -79,6 +80,20 @@ namespace FunctionsTests.Helpers
             string readVal = sr.ReadToEnd();
             Assert.AreEqual(val, readVal);
             Cleanup();
+        }
+
+        /// <summary>
+        /// Delete any and ALL databases in Cosmos DB connection.
+        /// </summary>
+        private static async void ClearCosmosDb(TestContext testContext)
+        {
+            var endpoint = (string)testContext.Properties["endpoint"];
+            var authKey = (string)testContext.Properties["authKey"];
+            DocumentDBRepository<object>.Initialize(endpoint, authKey);
+            foreach (var db in await DocumentDBRepository<object>.Client.ReadDatabaseFeedAsync())
+            {
+                await DocumentDBRepository<object>.Client.DeleteDatabaseAsync(db.SelfLink);
+            }
         }
 
     }

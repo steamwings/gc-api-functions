@@ -9,8 +9,8 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Net.Http;
 using Functions.Authentication;
-using Functions.Extensions;
 using System.Web;
+using Common.Extensions;
 
 namespace Functions
 {
@@ -50,15 +50,8 @@ namespace Functions
                 return new BadRequestObjectResult($"Missing parameter(s) {nullNames}");
             }
 
-            // Generate a search URL
             string searchUrl = "https://www.google.com/maps/search/" + HttpUtility.UrlEncode(theater);
-            //searchUrl += street + ',' + city;
-            //if (!string.IsNullOrEmpty(state)) 
-            //    searchUrl += ',' + state;
-            //searchUrl = searchUrl.Replace(' ', '+') + "/";
-
-
-            HttpResponseMessage mapsResponse = await client.GetAsync(searchUrl);
+            var mapsResponse = await client.GetAsync(searchUrl);
             string responseBody = await mapsResponse.Content.ReadAsStringAsync();
 
             if (!mapsResponse.IsSuccessStatusCode)

@@ -1,5 +1,5 @@
-﻿using Functions.Extensions;
-using Functions.Authentication;
+﻿using Functions.Authentication;
+using Common.Extensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Documents;
@@ -15,6 +15,10 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Models.Database.User;
+using System.Text;
+using Models;
+using Models.Common.User;
+using Models.UI.User;
 
 namespace Functions
 {
@@ -26,8 +30,10 @@ namespace Functions
         [FunctionName(nameof(Login))]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req,
-            [CosmosDB("userdb","usercoll",
-            ConnectionStringSetting = "CosmosDBConnection")] DocumentClient client,
+            [CosmosDB(
+                databaseName: "userdb",
+                collectionName: "usercoll", 
+                ConnectionStringSetting = "CosmosDBConnection")] DocumentClient client,
             ILogger log)
         {
             log.LogTrace($"{nameof(Login)}: processing request...");
@@ -39,9 +45,10 @@ namespace Functions
             string userDocId = data?.userId;
 
             if (log.NullWarning(new { email, password }, out string nullNames))
-            {
                 return new BadRequestObjectResult($"Missing parameter(s) {nullNames}");
-            }
+
+            if(!email.TryConvertToBase64(out var email64))
+                return new BadRequestObjectResult($"Invalid email.");
 
             GcUser user = null; // We need to get the user's salt
             if(userDocId != null) // With the document id, we can read the document directly
@@ -50,10 +57,10 @@ namespace Functions
                 if (resp.IsSuccessStatusCode())
                 {
                     user = resp.Document;
-                    if(user.coreUser.email != email)
+                    if(user.userCore.email64 != email64)
                     {
                         log.LogError("Email mismatch for user retrieved with userDocId!");
-                        log.LogDebug($"DocId: {userDocId} | Email in doc: {user.coreUser.email} | Email in request: {email}");
+                        log.LogDebug($"DocId: {userDocId} | Email in doc: {user.userCore.email64.FromBase64()} | Email in request: {email}");
                         return new StatusCodeResult(StatusCodes.Status500InternalServerError);
                     }
                 } 
@@ -75,7 +82,7 @@ namespace Functions
             }
             if (user is null) {// Without the document id, we need to find the user
                 var users = client.CreateDocumentQuery<GcUser>("dbs/userdb/colls/usercoll")
-                    .Where(u => u.coreUser.email == email);
+                    .Where(u => u.userCore.email64 == email);
                 switch (users.Count())
                 {
                     case 0:
@@ -92,8 +99,9 @@ namespace Functions
             string salt = user.salt;
             if (user.hash == AuthenticationHelper.Hash(password, ref salt))
             {
+                var nuser = ModelConverter.Convert<UserCoreUI>(user);
                 var token = AuthenticationHelper.GenerateJwt(log, email);
-                return new OkObjectResult(new { user.coreUser.name, token });
+                return new OkObjectResult(new { user.userCore.name, token });
             } else {
                 // TODO Save failed login attempts somewhere so we can notify users
                 log.LogWarning($"Failed login attempt for {email}");
