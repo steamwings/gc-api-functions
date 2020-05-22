@@ -26,10 +26,5 @@ namespace Models.Common.User
         /// </summary>
         [DataType(DataType.PhoneNumber)]
         public string phone { get; set; }
-
-        /// <summary>
-        /// Base64-encoded email used as a unique id
-        /// </summary>
-        public string email64 { get; set; }
     }
 }

@@ -59,8 +59,8 @@ namespace Functions
                 return new BadRequestObjectResult("Invalid password hash.");
             }
 
-            var coreUser = new UserCore { email64 = email64, name = name };
-            var user = new GcUser { hash = hash, salt = salt, userCore = coreUser };
+            var coreUser = new UserCore { name = name };
+            var user = new GcUser { id = email64, hash = hash, salt = salt, userCore = coreUser };
             HttpStatusCode statusCode = HttpStatusCode.InternalServerError;
 
             try

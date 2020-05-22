@@ -31,5 +31,10 @@ namespace Models.UI.User
         /// Base64-encoded email used as a unique id
         /// </summary>
         public string email { get; set; }
+
+        /// <summary>
+        /// JWT authorization
+        /// </summary>
+        public string token { get; set; }
     }
 }
