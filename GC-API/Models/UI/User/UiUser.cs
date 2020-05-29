@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Models.Common.User;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
@@ -8,7 +9,7 @@ namespace Models.UI.User
     /// <summary>
     /// User core data model for UI
     /// </summary>
-    public class UserCoreUI
+    public class UiUser
     {
         /// <summary>
         /// Full name
@@ -36,5 +37,7 @@ namespace Models.UI.User
         /// JWT authorization
         /// </summary>
         public string token { get; set; }
+
+        public UserProfile profile { get; set; }
     }
 }

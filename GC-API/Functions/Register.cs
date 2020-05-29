@@ -43,7 +43,7 @@ namespace Functions
             if(log.NullWarning(new {name, email, password}, out string nullNames))
                 return new BadRequestObjectResult($"Missing parameter(s) {nullNames}");
             
-            if (!email.TryConvertToBase64(out var email64))
+            if (!email.ToLower().TryEncodeBase64(out var email64))
                 return new BadRequestObjectResult($"Invalid email.");
 
             string salt = null; // assignment required because it's passed with ref
@@ -61,37 +61,14 @@ namespace Functions
 
             var coreUser = new UserCore { name = name };
             var user = new GcUser { id = email64, hash = hash, salt = salt, userCore = coreUser };
-            HttpStatusCode statusCode = HttpStatusCode.InternalServerError;
 
-            try
+            if(client.WrapCall(log, x => x.CreateDocumentAsync("dbs/userdb/colls/usercoll/", user)).GetWrapResult(out var statusCode, out var response))
             {
-                var resp = await client.CreateDocumentAsync("dbs/userdb/colls/usercoll/", user);
-                statusCode = resp.StatusCode;
-                if (statusCode == HttpStatusCode.Created)
-                {
-                    var token = AuthenticationHelper.GenerateJwt(log, email);
-                    return new CreatedResult(resp.Resource.Id, new { coreUser.name, token });
-                }
-            } catch (DocumentClientException e)
-            {
-                switch (statusCode)
-                {
-                    case HttpStatusCode.TooManyRequests:
-                        log.LogCritical($"{nameof(Register)}: got 429!");
-                        break;
-                    case HttpStatusCode.Forbidden: 
-                        log.LogCritical($"{nameof(Register)}: got permissions issue or collection full!");
-                        break;
-                    default: 
-                        log.LogError(e, $"{nameof(Register)}: got error ${e.StatusCode} for CreateDoc."); 
-                        break;
-                }
-                statusCode = e.StatusCode ?? HttpStatusCode.InternalServerError;
-            } finally
-            {
-                log.LogDebug($"{nameof(Register)}: status {(int) statusCode} for user: {JsonConvert.SerializeObject(user)}");
+                var token = AuthenticationHelper.GenerateJwt(log, email);
+                return new CreatedResult(response.Resource.Id, new { coreUser.name, token });
             }
-            return new StatusCodeResult((int) statusCode);
+            else return new StatusCodeResult((int)statusCode);
+
         }
     }
 }

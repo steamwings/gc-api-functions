@@ -1,12 +1,11 @@
-﻿using Models.Common;
-using Models.Common.User;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Models.Common.User;
 
 namespace Models.Database.User
 {
-    public class GcUser : IDbModel
+    public class GcUser
     { 
         /// <summary>
         /// Document id used by Cosmos

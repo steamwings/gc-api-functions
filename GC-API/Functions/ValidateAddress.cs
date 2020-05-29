@@ -6,7 +6,7 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
+using Newtonsoft.Json; // TODO Replace with System.Text.Json I think you just need this: 
 using System.Net.Http;
 using Functions.Authentication;
 using System.Web;
@@ -18,7 +18,7 @@ namespace Functions
     {
         static readonly HttpClient client = new HttpClient();
 
-        [FunctionName("ValidateAddress")]
+        [FunctionName(nameof(ValidateAddress))]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "post")] 
             HttpRequest req,
@@ -27,9 +27,7 @@ namespace Functions
             log.LogInformation($"Processing address validation request...");
             
             if (!AuthenticationHelper.Authorize(log, req.Headers, out var errorResponse))
-            {
                 return errorResponse;
-            }
 
             // Try getting fields from query string
             string theater = req.Query?.GetQueryValue("theater");

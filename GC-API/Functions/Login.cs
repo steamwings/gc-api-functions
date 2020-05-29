@@ -42,46 +42,21 @@ namespace Functions
             dynamic data = JsonConvert.DeserializeObject(requestBody);
             string email = data?.email;
             string password = data?.password;
-            string userDocId = data?.userId;
 
             if (log.NullWarning(new { email, password }, out string nullNames))
                 return new BadRequestObjectResult($"Missing parameter(s) {nullNames}");
 
-            if(!email.TryConvertToBase64(out var email64))
+            if(!email.ToLower().TryEncodeBase64(out var email64))
                 return new BadRequestObjectResult($"Invalid email.");
 
-            GcUser user = null; // We need to get the user's salt
-
-            var resp = await client.ReadDocumentAsync<GcUser>($"dbs/userdb/colls/usercoll/docs/{email64}");
-            if (resp.IsSuccessStatusCode())
-            {
-                user = resp.Document;
-                if(user.id != email64)
-                {
-                    log.LogError("Email mismatch for user retrieved with userDocId!");
-                    log.LogDebug($"DocId: {userDocId} | Email in doc: {user.id.FromBase64()} | Email in request: {email}");
-                    return new StatusCodeResult(StatusCodes.Status500InternalServerError);
-                }
-            } 
-            else 
-            {
-                switch (resp.StatusCode)
-                {
-                    case HttpStatusCode.NotFound:
-                        return new NotFoundResult();
-                    case HttpStatusCode.TooManyRequests:
-                        log.LogCritical("Request denied due to lack of RUs (429)!");
-                        return new StatusCodeResult(StatusCodes.Status500InternalServerError);
-                    default:
-                        log.LogInformation($"Cosmos ReadDoc call failed with {resp.StatusCode}");
-                        return new StatusCodeResult(StatusCodes.Status500InternalServerError);
-                }
-            }
+            if (!client.WrapCall(log, x => x.ReadDocumentAsync<GcUser>($"dbs/userdb/colls/usercoll/docs/{email64}")).GetWrapResult(out var statusCode, out var response))
+                return new StatusCodeResult((int)statusCode);
             
-            string salt = user.salt;
+            var user = response.Document;
+            var salt = user.salt;
             if (user.hash == AuthenticationHelper.Hash(password, ref salt))
             {
-                var uiUser = ModelConverter.Convert<UserCoreUI>(user);
+                var uiUser = ModelConverter.Convert<UiUser>(user);
                 uiUser.token = AuthenticationHelper.GenerateJwt(log, email);
                 return new OkObjectResult(uiUser);
             } else {

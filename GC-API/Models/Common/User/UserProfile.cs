@@ -11,6 +11,10 @@ namespace Models.Common.User
     {
         public string bio { get; set; }
 
-        //public IEnumerable<IPortfolio> portfolios { get; set; }
+        // TODO This should defined from limited options
+        public string artisticDomains { get; set; }
+
+        // TODO
+        // public IEnumerable<IPortfolio> portfolios { get; set; }
     }
 }

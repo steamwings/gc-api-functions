@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 
-namespace Models.Common.User
+namespace Models.Database.User
 {
     /// <summary>
     /// Key information for authentication and identification
     /// </summary>
-    public class UserCore : IDbModel
+    public class UserCore
     {
         /// <summary>
         /// Full name

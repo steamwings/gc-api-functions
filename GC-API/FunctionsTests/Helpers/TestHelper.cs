@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Http.Internal;
 using System.Runtime.CompilerServices;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
+using Microsoft.Extensions.Logging.Abstractions;
+using Models.Database.User;
 
 namespace FunctionsTests.Helpers
 {
@@ -36,6 +38,13 @@ namespace FunctionsTests.Helpers
         {
             ClearCosmosDb(testContext);
             AuthTestHelper.PrepareForJwtOperations(testContext);
+        }
+
+        public static void Register((string name, string email, string password) user)
+        {
+            if (DocumentDBRepository<GcUser>.Client is null) throw new ArgumentNullException(nameof(DocumentDBRepository<GcUser>.Client));
+            var req = MakeRequest(new { user.name, user.email, user.password }, NullLogger.Instance);
+            Functions.Register.Run(req, DocumentDBRepository<GcUser>.Client, NullLogger.Instance).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -72,13 +81,25 @@ namespace FunctionsTests.Helpers
         }
 
         [TestMethod]
-        public void TestMakeRequest()
+        public void TestMakeRequestString()
         {
             string val = "hello world";
             var req = MakeRequest(val);
             sr = new StreamReader(req.Body);
             string readVal = sr.ReadToEnd();
             Assert.AreEqual(val, readVal);
+            Cleanup();
+        }
+
+        private class Temp { public string String1 { get; set; } public int Int1 { get; set; } }
+
+        [TestMethod]
+        public void TestMakeRequestClass()
+        {
+            var req = MakeRequest(new Temp());
+            sr = new StreamReader(req.Body);
+            var readVal = sr.ReadToEnd();
+            Assert.IsInstanceOfType(readVal, typeof(Temp));
             Cleanup();
         }
 

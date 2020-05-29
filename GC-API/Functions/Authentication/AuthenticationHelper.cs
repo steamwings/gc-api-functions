@@ -2,13 +2,14 @@
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
+using JWT;
 using JWT.Algorithms;
 using JWT.Builder;
 using Microsoft.Extensions.Logging;
-using JWT;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Functions.Configuration;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 
 namespace Functions.Authentication
 {
@@ -19,37 +20,37 @@ namespace Functions.Authentication
         private static readonly string jwtSecret = FunctionsConfiguration.Get(ConfigValues.AuthenticationSecret);
 
         /// <summary>
-        /// Hash 
+        /// Hash <paramref name="password"/>. <paramref name="salt"/> is generated when <c>null</c>.
         /// </summary>
-        /// <param name="password"></param>
+        /// <param name="password">Password as received from frontend</param>
         /// <param name="salt">Pass by reference. When null, it will be generated.</param>
         /// <returns></returns>
         public static string Hash(string password, ref string salt)
         {
-            byte[] saltBA;
+            byte[] saltByteArray;
 
             if (salt == null) // then generate salt
             {
-                saltBA = new byte[saltBits / 8];
+                saltByteArray = new byte[saltBits / 8];
                 using (var rng = RandomNumberGenerator.Create())
                 {
-                    rng.GetBytes(saltBA);
+                    rng.GetBytes(saltByteArray);
                 }
-                salt = Convert.ToBase64String(saltBA);
+                salt = Convert.ToBase64String(saltByteArray);
             } else // convert salt to byte array
             {
-                saltBA = Convert.FromBase64String(salt);
-                if (saltBA.Length != saltBits / 8)
+                saltByteArray = Convert.FromBase64String(salt);
+                if (saltByteArray.Length != saltBits / 8)
                 {
                     throw new FormatException($"Argument {nameof(salt)} with value ${salt} had " +
-                        $"improper length or padding. BA size ${saltBA.Length}.");
+                        $"improper length or padding. BA size ${saltByteArray.Length}.");
                 }
             }
 
             // derive a 256-bit subkey: HMACSHA512 with 12,000 iterations
             return Convert.ToBase64String(KeyDerivation.Pbkdf2(
                 password: password,
-                salt: saltBA,
+                salt: saltByteArray,
                 prf: KeyDerivationPrf.HMACSHA512,
                 iterationCount: 12000,
                 numBytesRequested: hashBits / 8));
@@ -68,7 +69,7 @@ namespace Functions.Authentication
         /// Generate a token with the given parameters 
         /// </summary>
         /// <param name="log"></param>
-        /// <param name="claims"></param>
+        /// <param name="claims">Must contain an "email" claim for most other API calls to work</param>
         /// <param name="expiration"></param>
         /// <param name="fallbackSessionDays">This value is only used if the configuration variable is not found by conventional means</param>
         /// <returns></returns>
@@ -81,6 +82,7 @@ namespace Functions.Authentication
                 log?.LogWarning($"Invalid value for 'SessionTokenDays'. Defaulting to ${fallbackSessionDays}.");
             }
             claims ??= new Dictionary<string, object>();
+            if (!claims.ContainsKey("email")) log.LogWarning("Missing claim 'email'.");
             claims.Add("access", "true"); // Basic claim that is always checked
             claims.Add("exp", (expiration ?? DateTimeOffset.Now.AddDays(days)).ToUnixTimeSeconds());
             return new JwtBuilder()
@@ -91,6 +93,34 @@ namespace Functions.Authentication
         }
 
         /// <summary>
+        /// Determine if a request is authorized and get the email.
+        /// </summary>
+        /// <param name="log"></param>
+        /// <param name="headers">From a request</param>
+        /// <param name="email">Valid when returning <c>True</c></param>
+        /// <param name="errorResponse">Valid when returning <c>False</c></param>
+        /// <returns></returns>
+        public static bool Authorize(ILogger log, IHeaderDictionary headers, out string email, out IStatusCodeActionResult errorResponse)
+        {
+            IDictionary<string, object> claims = new Dictionary<string, object>();
+            if(!Authorize(log, headers, out errorResponse, ref claims))
+            {
+                email = null;
+                return false;
+            }
+
+            if(!claims.TryGetValue("email", out var emailObj)) {
+                log.LogWarning("Missing email claim at Authorize.");
+                errorResponse = new UnauthorizedResult();
+            }
+
+            return !string.IsNullOrEmpty(email = (string)emailObj);
+            
+            //return d.TryGetValue("email", out var emailObj) && (email = emailObj as string);
+
+        }
+
+        /// <summary>
         /// Determine if a request is authorized based on its header, with only default claims.
         /// </summary>
         /// <param name="log"></param>
@@ -98,7 +128,7 @@ namespace Functions.Authentication
         /// <param name="errorResponse"> When the return value is false, errorResponse is set to an ObjectResult
         /// which can be returned in an MVC-style method </param>
         /// <returns>True if authorized</returns>
-        public static bool Authorize(ILogger log, IHeaderDictionary headers, out ObjectResult errorResponse)
+        public static bool Authorize(ILogger log, IHeaderDictionary headers, out IStatusCodeActionResult errorResponse)
         {
             IDictionary<string, object> d = new Dictionary<string, object>();
             return Authorize(log, headers, out errorResponse, ref d);
@@ -109,12 +139,12 @@ namespace Functions.Authentication
         /// </summary>
         /// <param name="log"></param>
         /// <param name="headers">Request headers</param>
-        /// <param name="errorResponse">When the return value is false, errorResponse is set to an ObjectResult
+        /// <param name="errorResponse">When the return value is false, errorResponse is set to an <see cref="ActionResult"/>
         /// which can be returned in an MVC-style method </param>
         /// <param name="claims">Used to pass in additional claims to verify; when validation is successful, 
         /// all claims are returned (not just any passed in) </param>
         /// <returns></returns>
-        public static bool Authorize(ILogger log, IHeaderDictionary headers, out ObjectResult errorResponse, 
+        public static bool Authorize(ILogger log, IHeaderDictionary headers, out IStatusCodeActionResult errorResponse, 
             ref IDictionary<string, object> claims)
         {
             var authStart = "Bearer ";
@@ -127,15 +157,17 @@ namespace Functions.Authentication
             switch (ValidateJwt(log, jwt, ref claims))
             {
                 case JwtValidationResult.Valid:
-                    errorResponse = new ObjectResult("") { StatusCode = 500 }; // Should not be used
+                    // This response should NOT be used or returned to the caller. 
+                    // This could be improved by with an ActionResult derivative which throws an exception when ExecuteResultAsync is called
+                    errorResponse = null;
                     return true;
                 case JwtValidationResult.Expired: 
-                    errorResponse = new UnauthorizedObjectResult("Expired token."); // Provide message
+                    errorResponse = new UnauthorizedObjectResult("Expired token.");
                     return false;
                 case JwtValidationResult.InvalidSignature:
                 case JwtValidationResult.MissingOrInvalidClaim:
                 default:
-                    errorResponse = new UnauthorizedObjectResult(string.Empty);
+                    errorResponse = new UnauthorizedResult(); // We log the result, but no need to tell the caller why
                     return false;
             }
         }

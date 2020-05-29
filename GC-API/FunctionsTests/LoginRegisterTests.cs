@@ -7,6 +7,9 @@ using Models.Database.User;
 
 namespace FunctionsTests
 {
+    // TODO These existing tests can be broken out into LoginTests and RegisterTests
+    // TODO After doing the above, we should add more register tests (multiple users) 
+    // and more login tests (variations of multiple logins with multiple users)
     [TestClass]
     public class LoginRegisterTests
     {

@@ -20,19 +20,20 @@ namespace Models
         //}
 
         /// <summary>
-        /// Convert a <see cref="GcUser"/> to a <see cref="UserCoreUI"/>
+        /// Convert a <see cref="GcUser"/> to a <see cref="UiUser"/>
         /// </summary>
         /// <typeparam name="T">Type is used to pick the appropriate overload</typeparam>
         /// <param name="user"></param>
-        /// <returns>A new <see cref="UserCoreUI"/></returns>
-        public static UserCoreUI Convert<T>(GcUser user) where T : UserCoreUI
+        /// <returns>A new <see cref="UiUser"/></returns>
+        public static UiUser Convert<T>(GcUser user) where T : UiUser
         {
-            return new UserCoreUI
+            return new UiUser
             {
                 name = user.userCore.name,
-                email = user.id.FromBase64(),
                 dob = user.userCore.dob,
                 phone = user.userCore.phone,
+                email = user.id.DecodeBase64(),
+                profile = user.profile
             };
         }
     }

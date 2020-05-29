@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
 
 namespace Common.Extensions
 {
@@ -14,7 +15,7 @@ namespace Common.Extensions
         /// </summary>
         /// <param name="str"></param>
         /// <returns>Base64 string</returns>
-        public static bool TryConvertToBase64(this string str, out string encodedStr)
+        public static bool TryEncodeBase64(this string str, out string encodedStr)
         {
             try
             {
@@ -38,7 +39,7 @@ namespace Common.Extensions
         /// </summary>
         /// <param name="str"></param>
         /// <returns>Base64 decoded string</returns>
-        public static bool TryConvertFromBase64(this string str, out string decodedStr)
+        public static bool TryDecodeBase64(this string str, out string decodedStr)
         {
             try
             {
@@ -63,7 +64,7 @@ namespace Common.Extensions
         /// <param name="str">Base64-encoded string</param>
         /// <param name="returnOnFail">The string to return when decoding fails. When null, returns a message including <paramref name="str"/> on failure.</param>
         /// <returns></returns>
-        public static string FromBase64(this string str, string returnOnFail = null)
+        public static string DecodeBase64(this string str, string returnOnFail = null)
         {
             try
             {
@@ -71,6 +72,20 @@ namespace Common.Extensions
             } catch
             {
                 return returnOnFail ?? $"{str}_decodeFailed";
+            }
+        }
+
+        public static bool TryDeserialize<T>(this string str, out T deserialized)
+        {
+            try
+            {
+                deserialized = JsonSerializer.Deserialize<T>(str);
+                return true;
+            }
+            catch (JsonException)
+            {
+                deserialized = default;
+                return false;
             }
         }
     }

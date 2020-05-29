@@ -77,7 +77,7 @@ namespace FunctionsTests
             var request = new DefaultHttpRequest(new DefaultHttpContext()) { };
             request.Headers.Add("Authorization", $"Bearer {token}");
             bool result = AuthenticationHelper.Authorize(logger, request.Headers, out var resp);
-            logger.LogDebug($"Status code: {resp.StatusCode}");
+            logger.LogDebug($"Status code: {resp?.StatusCode}");
             Assert.IsTrue(result);
         }
 
