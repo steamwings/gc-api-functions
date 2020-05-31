@@ -10,6 +10,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using Models.Database.User;
+using Common.Extensions;
 
 namespace FunctionsTests.Helpers
 {
@@ -25,12 +26,15 @@ namespace FunctionsTests.Helpers
         private static StreamWriter sw = null;
         private static StreamReader sr = null;
         private static ILoggerFactory lf = LoggerFactory.Create(builder =>
-                builder.AddConsole()
+        {
+            builder.AddDebug();
+            builder.AddConsole()
 #if DEBUG
-                .SetMinimumLevel(LogLevel.Debug)
+                .SetMinimumLevel(LogLevel.Debug);
 #else
                 .SetMinimumLevel(LogLevel.Information)
 #endif
+        }
         );
         
         [AssemblyInitialize]
@@ -59,7 +63,7 @@ namespace FunctionsTests.Helpers
         public static HttpRequest MakeRequest(object toSerialize, ILogger logger = null)
         {
             string json = JsonConvert.SerializeObject(toSerialize);
-            logger.LogInformation(json);
+            logger?.LogInformation(json);
             return MakeRequest(json, logger);
         }
 
@@ -78,29 +82,6 @@ namespace FunctionsTests.Helpers
         public static ILogger MakeLogger([CallerMemberName] string name = "")
         {
             return lf.CreateLogger(name);
-        }
-
-        [TestMethod]
-        public void TestMakeRequestString()
-        {
-            string val = "hello world";
-            var req = MakeRequest(val);
-            sr = new StreamReader(req.Body);
-            string readVal = sr.ReadToEnd();
-            Assert.AreEqual(val, readVal);
-            Cleanup();
-        }
-
-        private class Temp { public string String1 { get; set; } public int Int1 { get; set; } }
-
-        [TestMethod]
-        public void TestMakeRequestClass()
-        {
-            var req = MakeRequest(new Temp());
-            sr = new StreamReader(req.Body);
-            var readVal = sr.ReadToEnd();
-            Assert.IsInstanceOfType(readVal, typeof(Temp));
-            Cleanup();
         }
 
         /// <summary>

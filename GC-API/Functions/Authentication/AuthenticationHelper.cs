@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 
 namespace Functions.Authentication
 {
+    // TODO Dependency inject this functionality so we don't need to run all the code every unit test
     public static class AuthenticationHelper
     {
         private const int saltBits = 128;

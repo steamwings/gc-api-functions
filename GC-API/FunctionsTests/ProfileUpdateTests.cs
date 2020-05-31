@@ -15,6 +15,14 @@ namespace FunctionsTests
     public class ProfileUpdateTests
     {
         public TestContext TestContext { get; set; }
+        private static string token;
+        private const int testUserIndex = 0;
+
+        [ClassInitialize]
+        public static void ProfileUpdateInitialize(TestContext _)
+        {
+            token = AuthTestHelper.GenerateValidJwt(TestHelper.MakeLogger(), TestHelper.TestUsers[0].email);
+        }
 
         [TestInitialize]
         public void Initialize()
@@ -30,10 +38,13 @@ namespace FunctionsTests
         {
             var logger = TestHelper.MakeLogger();
             var request = TestHelper.MakeRequest(new UserProfile(), logger);
+            request.Headers.Add("Authorization", $"Bearer {token}");
 
             var result = Functions.ProfileUpdate.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
 
-            Assert.IsInstanceOfType(result, typeof(OkResult));
+            Assert.IsInstanceOfType(result, typeof(IStatusCodeActionResult));
+            var statusCode = (result as IStatusCodeActionResult).StatusCode;
+            Assert.AreEqual(200, statusCode);
         }
     }
 }

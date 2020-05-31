@@ -47,7 +47,7 @@ namespace Functions
                 return new StatusCodeResult((int)statusCode);
 
             response.Document.profile = updatedProfile;
-            client.WrapCall(log, x => x.UpsertDocumentAsync(link, response.Document)).GetWrapResult(out statusCode, out _);
+            client.WrapCall(log, x => x.UpsertDocumentAsync(response.ContentLocation, response.Document)).GetWrapResult(out statusCode, out _);
 
             return new StatusCodeResult((int)statusCode);
         }
