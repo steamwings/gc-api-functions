@@ -8,6 +8,11 @@ using Microsoft.AspNetCore.Http.Internal;
 using System.Runtime.CompilerServices;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
+using Microsoft.Extensions.Logging.Abstractions;
+using Models.Database.User;
+using Common.Extensions;
+using Microsoft.AspNetCore.Mvc;
+using FunctionsTests.Extensions;
 
 namespace FunctionsTests.Helpers
 {
@@ -23,18 +28,32 @@ namespace FunctionsTests.Helpers
         private static StreamWriter sw = null;
         private static StreamReader sr = null;
         private static ILoggerFactory lf = LoggerFactory.Create(builder =>
-                builder.AddConsole()
+        {
+            builder.AddDebug();
+            builder.AddConsole()
 #if DEBUG
-                .SetMinimumLevel(LogLevel.Debug)
+                .SetMinimumLevel(LogLevel.Debug);
 #else
                 .SetMinimumLevel(LogLevel.Information)
 #endif
+        }
         );
         
         [AssemblyInitialize]
         public static void Init(TestContext testContext)
         {
-            AuthTestHelper.PrepareForJwtOperations(testContext);
+            ClearCosmosDb(testContext);
+            // Since local.settings.json is only used for local runs (and not unit tests)
+            Environment.SetEnvironmentVariable("AuthenticationSecret", (string)testContext.Properties["AuthenticationSecret"]);
+            Environment.SetEnvironmentVariable("SessionTokenDays", (string)testContext.Properties["SessionTokenDays"]);
+        }
+
+        public static string Register((string name, string email, string password) user)
+        {
+            if (DocumentDBRepository<GcUser>.Client is null) throw new ArgumentNullException(nameof(DocumentDBRepository<GcUser>.Client));
+            var req = MakeRequest(new { user.name, user.email, user.password }, NullLogger.Instance);
+            var result = Functions.Primitives.Register.Run(req, DocumentDBRepository<GcUser>.Client, NullLogger.Instance).GetAwaiter().GetResult();
+            return ((CreatedResult)result).Value.GetPropertyValue<string>("token");
         }
 
         /// <summary>
@@ -46,10 +65,12 @@ namespace FunctionsTests.Helpers
             sr?.Dispose();
         }
 
+        public static HttpRequest EmptyRequest => new DefaultHttpRequest(new DefaultHttpContext()) { };
+
         public static HttpRequest MakeRequest(object toSerialize, ILogger logger = null)
         {
             string json = JsonConvert.SerializeObject(toSerialize);
-            logger.LogInformation(json);
+            logger?.LogInformation(json);
             return MakeRequest(json, logger);
         }
 
@@ -65,20 +86,27 @@ namespace FunctionsTests.Helpers
             return request;
         }
 
+        /// <summary>
+        /// Create a unique log with the name of the caller
+        /// </summary>
+        /// <param name="name">Auto-populated</param>
         public static ILogger MakeLogger([CallerMemberName] string name = "")
         {
             return lf.CreateLogger(name);
         }
 
-        [TestMethod]
-        public void TestMakeRequest()
+        /// <summary>
+        /// Delete any and ALL databases in Cosmos DB connection.
+        /// </summary>
+        private static async void ClearCosmosDb(TestContext testContext)
         {
-            string val = "hello world";
-            var req = MakeRequest(val);
-            sr = new StreamReader(req.Body);
-            string readVal = sr.ReadToEnd();
-            Assert.AreEqual(val, readVal);
-            Cleanup();
+            var endpoint = (string)testContext.Properties["endpoint"];
+            var authKey = (string)testContext.Properties["authKey"];
+            DocumentDBRepository<object>.Initialize(endpoint, authKey);
+            foreach (var db in await DocumentDBRepository<object>.Client.ReadDatabaseFeedAsync())
+            {
+                await DocumentDBRepository<object>.Client.DeleteDatabaseAsync(db.SelfLink);
+            }
         }
 
     }

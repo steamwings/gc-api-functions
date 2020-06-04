@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Linq;
 
-namespace Functions.Extensions
+namespace Common.Extensions
 {
     public static class ILoggerExtensions
     {

@@ -7,6 +7,8 @@ using Microsoft.Extensions.Primitives;
 using Microsoft.Extensions.Logging.Abstractions;
 using FunctionsTests.Helpers;
 using System.Collections.Generic;
+using Functions.Authentication;
+using Functions.Utility;
 
 namespace FunctionsTests
 {
@@ -28,7 +30,7 @@ namespace FunctionsTests
         [ClassInitialize]
         public static void ValidateAddressInitialize(TestContext _)
         {
-            token = AuthTestHelper.GenerateValidJwt(TestHelper.MakeLogger());
+            token = AuthenticationHelper.GenerateJwt(TestHelper.MakeLogger());
         }
 
         [TestCleanup]
@@ -59,7 +61,7 @@ namespace FunctionsTests
             };
             request.Headers.Add("Authorization", $"Bearer {token}");
 
-            var result = Functions.ValidateAddress.Run(request, logger).GetAwaiter().GetResult();
+            var result = ValidateAddress.Run(request, logger).GetAwaiter().GetResult();
 
             Assert.IsInstanceOfType(result, typeof(OkObjectResult));
             var value = ((OkObjectResult) result).Value;
@@ -76,7 +78,7 @@ namespace FunctionsTests
             var request = TestHelper.MakeRequest(new { theater, street, city }, logger);
             request.Headers.Add("Authorization", $"Bearer {token}");
 
-            var result = Functions.ValidateAddress.Run(request, logger).GetAwaiter().GetResult();
+            var result = ValidateAddress.Run(request, logger).GetAwaiter().GetResult();
 
             Assert.IsInstanceOfType(result, typeof(OkObjectResult));
             var value = ((OkObjectResult) result).Value;
@@ -107,7 +109,7 @@ namespace FunctionsTests
             };
             request.Headers.Add("Authorization", $"Bearer {token}");
 
-            var result = Functions.ValidateAddress.Run(request, logger).GetAwaiter().GetResult();
+            var result = ValidateAddress.Run(request, logger).GetAwaiter().GetResult();
 
             Assert.IsInstanceOfType(result, typeof(OkObjectResult));
             var value = ((OkObjectResult) result).Value;
@@ -136,7 +138,7 @@ namespace FunctionsTests
             };
             request.Headers.Add("Authorization", $"Bearer {token}");
 
-            var result = Functions.ValidateAddress.Run(request, logger).GetAwaiter().GetResult();
+            var result = ValidateAddress.Run(request, logger).GetAwaiter().GetResult();
 
             Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
             var value = ((BadRequestObjectResult) result).Value;

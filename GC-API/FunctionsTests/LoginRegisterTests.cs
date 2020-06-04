@@ -7,6 +7,9 @@ using Models.Database.User;
 
 namespace FunctionsTests
 {
+    // TODO These existing tests can be broken out into LoginTests and RegisterTests
+    // TODO After doing the above, we should add more register tests (multiple users) 
+    // and more login tests (variations of multiple logins with multiple users)
     [TestClass]
     public class LoginRegisterTests
     {
@@ -41,7 +44,7 @@ namespace FunctionsTests
             var logger = TestHelper.MakeLogger();
             var request = TestHelper.MakeRequest(new { name, email, password }, logger);
 
-            var result = Functions.Register.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
+            var result = Functions.Primitives.Register.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
 
             Assert.IsInstanceOfType(result, typeof(CreatedResult));
             var value = ((CreatedResult)result).Value;
@@ -68,7 +71,7 @@ namespace FunctionsTests
             var request = TestHelper.MakeRequest(new { name, email, password }, logger);
 
             Register(testUserIndex);
-            var result = Functions.Register.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
+            var result = Functions.Primitives.Register.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
 
             Assert.IsInstanceOfType(result, typeof(IStatusCodeActionResult));
             var code = ((IStatusCodeActionResult) result).StatusCode;
@@ -87,7 +90,7 @@ namespace FunctionsTests
             requestBodyValues.SetAnonymousObjectProperty(propertyToNull, null);
             var request = TestHelper.MakeRequest(requestBodyValues, logger);
 
-            var result = Functions.Register.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
+            var result = Functions.Primitives.Register.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
 
             Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
             var value = ((BadRequestObjectResult) result).Value;
@@ -113,7 +116,7 @@ namespace FunctionsTests
             var logger = TestHelper.MakeLogger();
             var request = TestHelper.MakeRequest(new { email, password }, logger);
 
-            var result = Functions.Login.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
+            var result = Functions.Primitives.Login.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
 
             Assert.IsInstanceOfType(result, typeof(OkObjectResult));
             var value = ((OkObjectResult)result).Value;
@@ -140,7 +143,7 @@ namespace FunctionsTests
             requestBodyValues.SetAnonymousObjectProperty(propertyToNull, null);
             var request = TestHelper.MakeRequest(requestBodyValues, logger);
 
-            var result = Functions.Login.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
+            var result = Functions.Primitives.Login.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
 
             Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
             var value = ((BadRequestObjectResult)result).Value;
