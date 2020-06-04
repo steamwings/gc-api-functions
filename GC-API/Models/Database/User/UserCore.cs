@@ -16,6 +16,12 @@ namespace Models.Database.User
         public string name { get; set; }
 
         /// <summary>
+        /// Email address
+        /// </summary>
+        [DataType(DataType.EmailAddress)]
+        public string email { get; set; }
+
+        /// <summary>
         /// Date of birth
         /// </summary>
         [DataType(DataType.Date)]

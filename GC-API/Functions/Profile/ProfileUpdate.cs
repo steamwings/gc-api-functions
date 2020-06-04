@@ -11,9 +11,8 @@ using Microsoft.Azure.Documents.Client;
 using Common.Extensions;
 using Models.Database.User;
 using Functions.Authentication;
-using System.Web.Http;
 
-namespace Functions
+namespace Functions.Profile
 {
     public static class ProfileUpdate
     {
@@ -28,21 +27,14 @@ namespace Functions
         {
             log.LogTrace($"{nameof(ProfileUpdate)}: processing request...");
 
+            if (!AuthenticationHelper.Authorize(log, req.Headers, out var id, out var errorResponse))
+                return errorResponse;
+
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             if(!requestBody.TryDeserialize<UserProfile>(out var updatedProfile))
                 return new BadRequestObjectResult("Invalid profile.");
 
-            if (!AuthenticationHelper.Authorize(log, req.Headers, out var email, out var errorResponse))
-                return errorResponse;
-
-            if (!email.ToLower().TryEncodeBase64(out var email64))
-            {
-                log.LogError($"Encoding failed for email {email} in JWT token!");
-                return new InternalServerErrorResult();
-            }
-
-            var link = $"dbs/userdb/colls/usercoll/docs/{email64}";
-
+            var link = $"dbs/userdb/colls/usercoll/docs/{id}";
             if (!client.WrapCall(log, x => x.ReadDocumentAsync<GcUser>(link)).GetWrapResult(out var statusCode, out var response))
                 return new StatusCodeResult((int)statusCode);
 

@@ -32,7 +32,7 @@ namespace Models
                 name = user.userCore.name,
                 dob = user.userCore.dob,
                 phone = user.userCore.phone,
-                email = user.id.DecodeBase64(),
+                email = user.userCore.email,
                 profile = user.profile
             };
         }

@@ -11,6 +11,8 @@ using Newtonsoft.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using Models.Database.User;
 using Common.Extensions;
+using Microsoft.AspNetCore.Mvc;
+using FunctionsTests.Extensions;
 
 namespace FunctionsTests.Helpers
 {
@@ -41,14 +43,17 @@ namespace FunctionsTests.Helpers
         public static void Init(TestContext testContext)
         {
             ClearCosmosDb(testContext);
-            AuthTestHelper.PrepareForJwtOperations(testContext);
+            // Since local.settings.json is only used for local runs (and not unit tests)
+            Environment.SetEnvironmentVariable("AuthenticationSecret", (string)testContext.Properties["AuthenticationSecret"]);
+            Environment.SetEnvironmentVariable("SessionTokenDays", (string)testContext.Properties["SessionTokenDays"]);
         }
 
-        public static void Register((string name, string email, string password) user)
+        public static string Register((string name, string email, string password) user)
         {
             if (DocumentDBRepository<GcUser>.Client is null) throw new ArgumentNullException(nameof(DocumentDBRepository<GcUser>.Client));
             var req = MakeRequest(new { user.name, user.email, user.password }, NullLogger.Instance);
-            Functions.Register.Run(req, DocumentDBRepository<GcUser>.Client, NullLogger.Instance).GetAwaiter().GetResult();
+            var result = Functions.Primitives.Register.Run(req, DocumentDBRepository<GcUser>.Client, NullLogger.Instance).GetAwaiter().GetResult();
+            return ((CreatedResult)result).Value.GetPropertyValue<string>("token");
         }
 
         /// <summary>
@@ -59,6 +64,8 @@ namespace FunctionsTests.Helpers
             sw?.Dispose();
             sr?.Dispose();
         }
+
+        public static HttpRequest EmptyRequest => new DefaultHttpRequest(new DefaultHttpContext()) { };
 
         public static HttpRequest MakeRequest(object toSerialize, ILogger logger = null)
         {
@@ -79,6 +86,10 @@ namespace FunctionsTests.Helpers
             return request;
         }
 
+        /// <summary>
+        /// Create a unique log with the name of the caller
+        /// </summary>
+        /// <param name="name">Auto-populated</param>
         public static ILogger MakeLogger([CallerMemberName] string name = "")
         {
             return lf.CreateLogger(name);

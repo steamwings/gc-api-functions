@@ -75,6 +75,13 @@ namespace Common.Extensions
             }
         }
 
+        /// <summary>
+        /// Try to deserialize a JSON string.
+        /// </summary>
+        /// <typeparam name="T">Type to deserialize to</typeparam>
+        /// <param name="str">this</param>
+        /// <param name="deserialized">output</param>
+        /// <returns><c>True</c> when successful.</returns>
         public static bool TryDeserialize<T>(this string str, out T deserialized)
         {
             try

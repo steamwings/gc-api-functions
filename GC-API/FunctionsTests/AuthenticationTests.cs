@@ -1,12 +1,12 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Functions.Authentication;
-using FunctionsTests.Helpers;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using FunctionsTests.Extensions;
+using Functions.Authentication;
+using FunctionsTests.Helpers;
 
 namespace FunctionsTests
 {
@@ -40,12 +40,12 @@ namespace FunctionsTests
         }
 
         [TestMethod]
-        public void GenerateValidateEmailClaim()
+        public void GenerateValidateIdClaim()
         {
-            var email = "e@mail.com";
+            var id = "fakeid";
             var logger = TestHelper.MakeLogger();
-            var token = AuthenticationHelper.GenerateJwt(logger, email);
-            IDictionary<string, object> claimsToValidate = new Dictionary<string, object> { { "email", email } };
+            var token = AuthenticationHelper.GenerateJwt(logger, id);
+            IDictionary<string, object> claimsToValidate = new Dictionary<string, object> { { "id", id } };
             Assert.AreEqual(AuthenticationHelper.JwtValidationResult.Valid, 
                 AuthenticationHelper.ValidateJwt(logger, token, ref claimsToValidate));
         }

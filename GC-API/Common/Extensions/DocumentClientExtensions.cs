@@ -1,8 +1,11 @@
 ﻿using Common.Data.Interfaces;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -33,6 +36,40 @@ namespace Common.Extensions
         public static Task<IDocumentClientResult<T>> WrapCall<T>(this DocumentClient client, ILogger log, Func<DocumentClient, Task<T>> clientCall, [CallerMemberName] string callerName = "") where T : IResourceResponseBase
         {
             return ClientDocumentOperation(log, clientCall.Invoke(client), functionName: callerName);
+        }
+
+        /// <summary>
+        /// Method to find a unique item in the database.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="client"></param>
+        /// <param name="log"></param>
+        /// <param name="func"></param>
+        /// <param name="item">Should only be used when <c>True</c> is returned.</param>
+        /// <param name="errorResponse">Should only be used when <c>False</c> is returned.</param>
+        /// <param name="callerName"></param>
+        /// <returns><c>True</c> when <paramref name="item"/> was found.</returns>
+        /// <remarks> If this method does not prove reusable, then remove it and just paste this code back. 
+        /// That at least provides the advantage of less generic log messages.</remarks>
+        public static bool FindUniqueItem<T>(this DocumentClient client, ILogger log, Func<DocumentClient, IQueryable<T>> func,  out T item, out IStatusCodeActionResult errorResponse, [CallerMemberName] string callerName = "")
+        {
+            var items = func.Invoke(client);
+            item = default;
+            errorResponse = new StatusCodeResult(500);
+            switch (items.Count())
+            {
+                case 1: break;
+                case 0:
+                    log.LogTrace($"No {typeof(T).GetType().Name} found for {callerName}");
+                    errorResponse = new NotFoundResult();
+                    return false;
+                default:
+                    log.LogCritical($"More than one {typeof(T).GetType().Name} for {callerName}");
+                    // Writing code to recover from this (e.g. change one user's id) should not be necessary
+                    return false;
+            }
+            item = items.AsEnumerable().Single();
+            return true;
         }
 
         /// <summary>

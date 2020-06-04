@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Functions.Configuration;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using System.Runtime.CompilerServices;
 
 namespace Functions.Authentication
 {
@@ -61,9 +62,9 @@ namespace Functions.Authentication
         /// Generate a token with an email claim
         /// </summary>
         /// <returns>Token in string form</returns>
-        public static string GenerateJwt(ILogger log, string email)
+        public static string GenerateJwt(ILogger log, string id)
         {
-            return GenerateJwt(log, new Dictionary<string, object> { { "email", email } });
+            return GenerateJwt(log, new Dictionary<string, object> { { "id", id } });
         }
 
         /// <summary>
@@ -101,24 +102,21 @@ namespace Functions.Authentication
         /// <param name="email">Valid when returning <c>True</c></param>
         /// <param name="errorResponse">Valid when returning <c>False</c></param>
         /// <returns></returns>
-        public static bool Authorize(ILogger log, IHeaderDictionary headers, out string email, out IStatusCodeActionResult errorResponse)
+        public static bool Authorize(ILogger log, IHeaderDictionary headers, out string id, out IStatusCodeActionResult errorResponse, [CallerMemberName] string callerName = "")
         {
             IDictionary<string, object> claims = new Dictionary<string, object>();
             if(!Authorize(log, headers, out errorResponse, ref claims))
             {
-                email = null;
+                id = null;
                 return false;
             }
 
-            if(!claims.TryGetValue("email", out var emailObj)) {
-                log.LogWarning("Missing email claim at Authorize.");
+            if(!claims.TryGetValue("id", out var idObj)) {
+                log.LogWarning($"Missing id claim at Authorize for {callerName}");
                 errorResponse = new UnauthorizedResult();
             }
 
-            return !string.IsNullOrEmpty(email = (string)emailObj);
-            
-            //return d.TryGetValue("email", out var emailObj) && (email = emailObj as string);
-
+            return !string.IsNullOrEmpty(id = (string)idObj);
         }
 
         /// <summary>
