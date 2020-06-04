@@ -34,7 +34,7 @@ namespace FunctionsTests.Helpers
 #if DEBUG
                 .SetMinimumLevel(LogLevel.Debug);
 #else
-                .SetMinimumLevel(LogLevel.Information)
+                .SetMinimumLevel(LogLevel.Information);
 #endif
         }
         );
