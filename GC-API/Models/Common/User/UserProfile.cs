@@ -7,12 +7,12 @@ namespace Models.Common.User
     /// <summary>
     /// Data for public profile
     /// </summary>
-    public class UserProfile
+    public class UserProfile // TODO Add IProfile interface
     {
         public string bio { get; set; }
 
-        // TODO This should defined from limited options
-        public string artisticDomains { get; set; }
+        // TODO This should be defined from limited options
+        public string domains { get; set; }
 
         // TODO
         // public IEnumerable<IPortfolio> portfolios { get; set; }

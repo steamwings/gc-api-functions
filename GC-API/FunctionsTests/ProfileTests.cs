@@ -20,7 +20,7 @@ namespace FunctionsTests
         private static readonly List<UserProfile> testProfiles = new List<UserProfile>
         {
             new UserProfile(),
-            new UserProfile { artisticDomains = "actor", bio = "amazing" },
+            new UserProfile { domains = "actor", bio = "amazing" },
         };
         public TestContext TestContext { get; set; }
         private static string token;

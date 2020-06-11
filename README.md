@@ -4,16 +4,16 @@
 - Login (POST)*
 - Register (POST)*
 - ValidateAddress (POST)
-- User (GET) - coming soon
-- User (PATCH) - coming soon
+- Profile (GET)
+- Profile (PUT)
 
 \* These functions do not require a JWT token for authorization.
 
-All functions require a function key or API key if accessing via the API gateway.
+All functions require a function key (or API key if accessing via the API gateway).
 
 ## Projects Overview
-- **Functions**: the functions to deploy
-- **FunctionsTests**: comprehensive unit tests
+- **Functions**: the functions being deployed
+- **FunctionsTests**: comprehensive unit and integration tests
 - **Models**: data models
     - **Database**: models used only by the backend db
     - **UI**: models used only by the frontend
