@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Linq;
 
@@ -33,6 +32,49 @@ namespace Common.Extensions
                 return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// Creates an <see cref="ILogger"/> which always prints with a prefix generated from <paramref name="prefixes"/>
+        /// </summary>
+        /// <param name="log"></param>
+        /// <param name="prefixes"></param>
+        /// <returns>A new log</returns>
+        public static ILogger GetLoggerWithPrefix(this ILogger log, params string[] prefixes)
+        {
+            return new LogWrapper(log, prefixes);
+        }
+
+        /// <summary>
+        /// Return an ILogger that prefixes with the function name
+        /// </summary>
+        /// <remarks>TODO: This is sort of a hack, and should probably be replaced by a custom logger.</remarks>
+        private class LogWrapper : ILogger
+        {
+            private readonly ILogger _wrapped;
+            private readonly string _prefix;
+            public LogWrapper(ILogger toWrap, params string[] prefixes)
+            {
+                _wrapped = toWrap;
+                _prefix = prefixes.Aggregate((prefix, x) => prefix + "-" + x).Trim('-') + ": ";
+            }
+
+            public IDisposable BeginScope<TState>(TState state)
+            {
+                return _wrapped.BeginScope(state);
+            }
+
+            public bool IsEnabled(LogLevel logLevel)
+            {
+                return _wrapped.IsEnabled(logLevel);
+            }
+
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+            {
+                _wrapped.Log(logLevel, eventId, state, exception, 
+                    (TState t, Exception e) => _prefix + formatter.Invoke(t, e));
+            }
+
         }
     }
 }

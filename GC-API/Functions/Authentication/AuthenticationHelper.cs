@@ -165,6 +165,7 @@ namespace Functions.Authentication
                     return false;
                 case JwtValidationResult.InvalidSignature:
                 case JwtValidationResult.MissingOrInvalidClaim:
+                case JwtValidationResult.Malformed:
                 default:
                     errorResponse = new UnauthorizedResult(); // We log the result, but no need to tell the caller why
                     return false;
@@ -176,6 +177,7 @@ namespace Functions.Authentication
             Expired,
             InvalidSignature,
             MissingOrInvalidClaim,
+            Malformed,
             Valid
         }
 
@@ -213,6 +215,11 @@ namespace Functions.Authentication
             {
                 log.LogWarning("Token has invalid signature.");
                 return JwtValidationResult.InvalidSignature;
+            }
+            catch (InvalidTokenPartsException)
+            {
+                log.LogWarning("Malformed token.");
+                return JwtValidationResult.Malformed;
             }
 
             foreach (var c in claimsToValidate)

@@ -25,7 +25,8 @@ namespace Functions.Profile
                 ConnectionStringSetting = "CosmosDBConnection")] DocumentClient client,
             ILogger log)
         {
-            log.LogTrace($"{nameof(ProfileUpdate)}: processing request...");
+            log = log.GetLoggerWithPrefix(nameof(ProfileUpdate));
+            log.LogTrace("Processing request...");
 
             if (!AuthenticationHelper.Authorize(log, req.Headers, out var id, out var errorResponse))
                 return errorResponse;

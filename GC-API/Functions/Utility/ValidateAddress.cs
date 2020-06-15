@@ -24,7 +24,8 @@ namespace Functions.Utility
             HttpRequest req,
             ILogger log)
         {
-            log.LogInformation($"Processing address validation request...");
+            log = log.GetLoggerWithPrefix(nameof(ValidateAddress));
+            log.LogTrace("Processing request...");
             
             if (!AuthenticationHelper.Authorize(log, req.Headers, out var errorResponse))
                 return errorResponse;
