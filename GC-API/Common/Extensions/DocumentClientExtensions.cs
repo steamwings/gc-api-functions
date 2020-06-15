@@ -31,23 +31,23 @@ namespace Common.Extensions
         /// <param name="client"></param>
         /// <param name="log"></param>
         /// <param name="clientCall">Call to make on the <paramref name="client"/></param>
-        /// <param name="callerName">Auto-populated.</param>
+        /// <param name="callerName">Auto-populated. Will generally be "Run" for Azure functions.</param>
         /// <returns>A <see cref="IDocumentClientResult{T}"/></returns>
-        public static Task<IDocumentClientResult<T>> WrapCall<T>(this DocumentClient client, ILogger log, Func<DocumentClient, Task<T>> clientCall, [CallerMemberName] string callerName = "") where T : IResourceResponseBase
+        public static Task<IDocumentClientResult<T>> WrapCall<T>(this DocumentClient client, ILogger log, Func<DocumentClient, Task<T>> clientCall, [CallerMemberName] string callerName = "", [CallerLineNumber] int callerLine = 0) where T : IResourceResponseBase
         {
-            return ClientDocumentOperation(log, clientCall.Invoke(client), functionName: callerName);
+            return ClientDocumentOperation(log, clientCall.Invoke(client), callerName: callerName, callerLine: callerLine);
         }
 
         /// <summary>
         /// Method to find a unique item in the database.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type of the desired unique item</typeparam>
         /// <param name="client"></param>
         /// <param name="log"></param>
-        /// <param name="func"></param>
+        /// <param name="func">A function using a <see cref="DocumentClient"/> and returning an <see cref="IQueryable{T}"/></param>
         /// <param name="item">Should only be used when <c>True</c> is returned.</param>
         /// <param name="errorResponse">Should only be used when <c>False</c> is returned.</param>
-        /// <param name="callerName"></param>
+        /// <param name="callerName">Auto-populated. Will generally be "Run" for Azure functions.</param>
         /// <returns><c>True</c> when <paramref name="item"/> was found.</returns>
         /// <remarks> If this method does not prove reusable, then remove it and just paste this code back. 
         /// That at least provides the advantage of less generic log messages.</remarks>
@@ -58,7 +58,7 @@ namespace Common.Extensions
             errorResponse = new StatusCodeResult(500);
             switch (items.Count())
             {
-                case 1: break;
+                case 1: break; // Found!
                 case 0:
                     log.LogTrace($"No {typeof(T).GetType().Name} found for {callerName}");
                     errorResponse = new NotFoundResult();
@@ -66,6 +66,7 @@ namespace Common.Extensions
                 default:
                     log.LogCritical($"More than one {typeof(T).GetType().Name} for {callerName}");
                     // Writing code to recover from this (e.g. change one user's id) should not be necessary
+                    // but might end up being useful...
                     return false;
             }
             item = items.AsEnumerable().Single();
@@ -78,7 +79,7 @@ namespace Common.Extensions
         /// <typeparam name="T">The type of the response from the <see cref="DocumentClient"/> call</typeparam>
         /// <param name="log"></param>
         /// <returns>An <see cref="IDocumentClientResult{T}"/> </returns>
-        private static async Task<IDocumentClientResult<T>> ClientDocumentOperation<T>(ILogger log, Task<T> clientTask, string functionName = "?", [CallerMemberName] string callerName = "") where T : IResourceResponseBase
+        private static async Task<IDocumentClientResult<T>> ClientDocumentOperation<T>(ILogger log, Task<T> clientTask, [CallerMemberName] string callerName = "", [CallerLineNumber] int callerLine = 0) where T : IResourceResponseBase
         {
             T response = default;
             HttpStatusCode statusCode = HttpStatusCode.Unused; // It's reasonably unlikely to ever get this from Cosmos, right? 
@@ -91,23 +92,23 @@ namespace Common.Extensions
             // TODO handle other exceptions like AggregateException?
             } catch(DocumentClientException dce)
             {
-                log.LogError(dce, $"DocumentClientException for document operation {callerName}");
+                log.LogError(dce, $"{callerName}({callerLine}): DocumentClientException");
                 statusCode = dce.StatusCode ?? HttpStatusCode.InternalServerError;
             } finally
             {
                 if (statusCode == HttpStatusCode.Unused) 
-                    log.LogError($"{functionName}: status code was NOT set in {callerName}!");
+                    log.LogError($"{callerName}({callerLine}): status code was NOT set for document operation!");
                 else 
-                    log.LogDebug($"{functionName}: status {(int)statusCode} in {callerName}"); // TODO Consider adding back {JsonSerializer.ToString(user)}");
+                    log.LogDebug($"{callerName}({callerLine}): status {(int)statusCode} for document operation"); // TODO Consider adding back {JsonSerializer.ToString(user)}");
             }
 
             switch (statusCode) // Turn most non-2XXs into 500s
             {
                 case HttpStatusCode.TooManyRequests:
-                    log.LogCritical("Request denied due to lack of RUs (429)!");
+                    log.LogCritical($"{callerName}({callerLine}): Request denied due to lack of RUs (429)!");
                     break;
                 default:
-                    log.LogInformation($"{callerName} call failed with {statusCode}");
+                    log.LogInformation($"{callerName}({callerLine}): document operation failed with {statusCode}");
                     break;
             }
             return new DocumentClientResult<T>(statusCode);

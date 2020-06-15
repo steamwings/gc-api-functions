@@ -31,7 +31,8 @@ namespace Functions.Primitives
                 ConnectionStringSetting = "CosmosDBConnection")] DocumentClient client,
             ILogger log)
         {
-            log.LogInformation($"{nameof(Register)}: processing request...");
+            log = log.GetLoggerWithPrefix(nameof(Register));
+            log.LogTrace("Processing request...");
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             dynamic data = JsonConvert.DeserializeObject(requestBody);
