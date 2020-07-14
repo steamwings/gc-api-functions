@@ -84,7 +84,7 @@ namespace Functions.Authentication
                 log?.LogWarning($"Invalid value for 'SessionTokenDays'. Defaulting to ${fallbackSessionDays}.");
             }
             claims ??= new Dictionary<string, object>();
-            if (!claims.ContainsKey("email")) log.LogWarning("Missing claim 'email'.");
+            if (!claims.ContainsKey("id")) log.LogWarning("Missing claim 'id'.");
             claims.Add("access", "true"); // Basic claim that is always checked
             claims.Add("exp", (expiration ?? DateTimeOffset.Now.AddDays(days)).ToUnixTimeSeconds());
             return new JwtBuilder()
@@ -102,7 +102,7 @@ namespace Functions.Authentication
         /// <param name="email">Valid when returning <c>True</c></param>
         /// <param name="errorResponse">Valid when returning <c>False</c></param>
         /// <returns></returns>
-        public static bool Authorize(ILogger log, IHeaderDictionary headers, out string id, out IStatusCodeActionResult errorResponse, [CallerMemberName] string callerName = "")
+        public static bool Authorize(ILogger log, IHeaderDictionary headers, out string id, out IStatusCodeActionResult errorResponse)
         {
             IDictionary<string, object> claims = new Dictionary<string, object>();
             if(!Authorize(log, headers, out errorResponse, ref claims))
@@ -112,7 +112,7 @@ namespace Functions.Authentication
             }
 
             if(!claims.TryGetValue("id", out var idObj)) {
-                log.LogWarning($"Missing id claim at Authorize for {callerName}");
+                log.LogWarning($"Missing id claim at Authorize");
                 errorResponse = new UnauthorizedResult();
             }
 
