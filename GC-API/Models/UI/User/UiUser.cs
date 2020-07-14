@@ -12,11 +12,6 @@ namespace Models.UI.User
     public class UiUser
     {
         /// <summary>
-        /// Unique identifier
-        /// </summary>
-        public string id { get; set; }
-
-        /// <summary>
         /// Full name
         /// </summary>
         public string name { get; set; }
