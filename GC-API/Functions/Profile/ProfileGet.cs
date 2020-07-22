@@ -6,19 +6,18 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using Microsoft.Azure.Documents.Client;
 using Common.Extensions;
-using Models.Common.User;
 using Functions.Authentication;
 using Models.Database.User;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 
 namespace Functions.Profile
 {
     public static class ProfileGet
     {
         [FunctionName(nameof(ProfileGet))]
-        public static async Task<IActionResult> Run(
+        public static Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = "profile/{id}")] HttpRequest req,
             string id,
             [CosmosDB(
@@ -31,13 +30,13 @@ namespace Functions.Profile
             log.LogTrace("Processing request...");
 
             if (!AuthenticationHelper.Authorize(log, req.Headers, out var errorResponse))
-                return errorResponse;
+                return errorResponse.ToResult();
 
             var link = $"dbs/userdb/colls/usercoll/docs/{id}";
             if (!client.WrapCall(log, x => x.ReadDocumentAsync<GcUser>(link)).GetWrapResult(out var statusCode, out var response))
-                return new StatusCodeResult((int)statusCode);
+                return new StatusCodeResult((int)statusCode).ToResult();
 
-            return new OkObjectResult(response.Document.profile);
+            return new OkObjectResult(response.Document.profile).ToResult();
         }
     }
 }

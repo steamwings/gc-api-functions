@@ -167,7 +167,7 @@ namespace Functions.Authentication
                 case JwtValidationResult.MissingOrInvalidClaim:
                 case JwtValidationResult.Malformed:
                 default:
-                    errorResponse = new UnauthorizedResult(); // We log the result, but no need to tell the caller why
+                    errorResponse = new UnauthorizedObjectResult("Bad token."); // We log the result, but we'll be vague to the caller.
                     return false;
             }
         }
