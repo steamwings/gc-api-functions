@@ -87,6 +87,7 @@ namespace Common.Extensions
             {
                 response = await clientTask;
                 statusCode = response.StatusCode;
+                log.LogTrace("Response from DocumentClient task has status {0}, activityId {1}", response.StatusCode, response.ActivityId);
                 if (response.IsSuccessStatusCode())
                     return new DocumentClientResult<T>(response);
             // TODO handle other exceptions like AggregateException?

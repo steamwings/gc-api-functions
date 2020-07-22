@@ -231,6 +231,7 @@ namespace Functions.Authentication
                 }
             }
 
+            log.LogTrace("Valid token.");
             return JwtValidationResult.Valid;
         }
 
