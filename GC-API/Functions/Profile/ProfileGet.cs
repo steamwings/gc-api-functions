@@ -10,14 +10,13 @@ using Microsoft.Azure.Documents.Client;
 using Common.Extensions;
 using Functions.Authentication;
 using Models.Database.User;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
 
 namespace Functions.Profile
 {
     public static class ProfileGet
     {
         [FunctionName(nameof(ProfileGet))]
-        public static Task<IActionResult> Run(
+        public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = "profile/{id}")] HttpRequest req,
             string id,
             [CosmosDB(
@@ -30,13 +29,14 @@ namespace Functions.Profile
             log.LogTrace("Processing request...");
 
             if (!AuthenticationHelper.Authorize(log, req.Headers, out var errorResponse))
-                return errorResponse.ToResult();
+                return errorResponse;
 
             var link = $"dbs/userdb/colls/usercoll/docs/{id}";
-            if (!client.WrapCall(log, x => x.ReadDocumentAsync<GcUser>(link)).GetWrapResult(out var statusCode, out var response))
-                return new StatusCodeResult((int)statusCode).ToResult();
+            var result = await client.WrapCall(log, x => x.ReadDocumentAsync<GcUser>(link));
+            if (!result.Success)
+                return new StatusCodeResult((int)result.StatusCode);
 
-            return new OkObjectResult(response.Document.profile).ToResult();
+            return new OkObjectResult(result.Response.Document.profile);
         }
     }
 }
