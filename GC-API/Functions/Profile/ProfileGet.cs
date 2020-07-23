@@ -17,7 +17,7 @@ namespace Functions.Profile
     {
         [FunctionName(nameof(ProfileGet))]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "profile/{id:alpha}")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "profile/{id:guid}")] HttpRequest req,
             [CosmosDB(
                 databaseName: "userdb",
                 collectionName: "usercoll",
