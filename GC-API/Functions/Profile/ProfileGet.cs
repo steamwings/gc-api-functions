@@ -17,12 +17,12 @@ namespace Functions.Profile
     {
         [FunctionName(nameof(ProfileGet))]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "profile/{id}")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "profile/{id:alpha}")] HttpRequest req,
             [CosmosDB(
                 databaseName: "userdb",
                 collectionName: "usercoll",
                 ConnectionStringSetting = "CosmosDBConnection")] DocumentClient client,
-            //string id,
+            string id,
             ILogger log)
         {
             log.LogInformation("ProfileGet running."); // TODO Remove this.
@@ -33,7 +33,7 @@ namespace Functions.Profile
                 return errorResponse;
             log.LogTrace("Authorized.");
 
-            var link = $"dbs/userdb/colls/usercoll/docs/947171cb-1ea9-4987-83ff-024a48b7d914"; // TODO Remove hardcoded test
+            var link = $"dbs/userdb/colls/usercoll/docs/{id}";
             var result = await client.WrapCall(log, x => x.ReadDocumentAsync<GcUser>(link));
             if (!result.Success)
                 return new StatusCodeResult((int)result.StatusCode);
