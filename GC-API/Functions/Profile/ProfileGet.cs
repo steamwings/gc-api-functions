@@ -25,17 +25,20 @@ namespace Functions.Profile
                 ConnectionStringSetting = "CosmosDBConnection")] DocumentClient client,
             ILogger log)
         {
+            log.LogInformation("ProfileGet running."); // TODO Remove this.
             log = log.GetLoggerWithPrefix(nameof(ProfileGet));
             log.LogTrace("Processing request...");
 
             if (!AuthenticationHelper.Authorize(log, req.Headers, out var errorResponse))
                 return errorResponse;
+            log.LogTrace("Authorized.");
 
             var link = $"dbs/userdb/colls/usercoll/docs/{id}";
             var result = await client.WrapCall(log, x => x.ReadDocumentAsync<GcUser>(link));
             if (!result.Success)
                 return new StatusCodeResult((int)result.StatusCode);
-
+            log.LogTrace("ReadDocAsync succeeded.");
+            
             return new OkObjectResult(result.Response.Document.profile);
         }
     }
