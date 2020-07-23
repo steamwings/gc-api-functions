@@ -152,6 +152,7 @@ namespace Functions.Authentication
                 errorResponse = new UnauthorizedObjectResult("No credentials.");
                 return false;
             }
+
             var jwt = val[0].Remove(0, authStart.Length);
             switch (ValidateJwt(log, jwt, ref claims))
             {

@@ -16,8 +16,8 @@ namespace Functions.Profile
     public static class ProfileGet
     {
         [FunctionName(nameof(ProfileGet))]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "profile/{id:guid}")] HttpRequest req,
+        public static IActionResult Run(
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "profile/{id}")] HttpRequest req,
             [CosmosDB(
                 databaseName: "userdb",
                 collectionName: "usercoll",
@@ -25,7 +25,7 @@ namespace Functions.Profile
             string id,
             ILogger log)
         {
-            log.LogInformation("ProfileGet running."); // TODO Remove this.
+            log.LogInformation("ProfileGet running."); // TODO Remove (should be unnecessary)
             log = log.GetLoggerWithPrefix(nameof(ProfileGet));
             log.LogTrace("Processing request...");
 
@@ -34,12 +34,11 @@ namespace Functions.Profile
             log.LogTrace("Authorized.");
 
             var link = $"dbs/userdb/colls/usercoll/docs/{id}";
-            var result = await client.WrapCall(log, x => x.ReadDocumentAsync<GcUser>(link));
-            if (!result.Success)
-                return new StatusCodeResult((int)result.StatusCode);
+            if (!client.WrapCall(log, x => x.ReadDocumentAsync<GcUser>(link)).GetWrapResult(out var statusCode, out var response))
+                return new StatusCodeResult((int)statusCode);
             log.LogTrace("ReadDocAsync succeeded.");
-            
-            return new OkObjectResult(result.Response.Document.profile);
+             
+            return new OkObjectResult(response.Document.profile);
         }
     }
 }
