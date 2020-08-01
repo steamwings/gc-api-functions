@@ -48,6 +48,10 @@ namespace FunctionsTests.Helpers
             Environment.SetEnvironmentVariable("SessionTokenDays", (string)testContext.Properties["SessionTokenDays"]);
         }
 
+        /// <summary>
+        /// Register a user for a unit test
+        /// </summary>
+        /// <returns>a JWT token string</returns>
         public static string Register((string name, string email, string password) user)
         {
             if (DocumentDBRepository<GcUser>.Client is null) throw new ArgumentNullException(nameof(DocumentDBRepository<GcUser>.Client));
