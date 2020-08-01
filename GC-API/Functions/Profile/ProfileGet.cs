@@ -18,11 +18,11 @@ namespace Functions.Profile
         [FunctionName(nameof(ProfileGet))]
         public static IActionResult Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = "profile/{id}")] HttpRequest req,
-            string id,
             [CosmosDB(
                 databaseName: "userdb",
                 collectionName: "usercoll",
                 ConnectionStringSetting = "CosmosDBConnection")] DocumentClient client,
+            string id,
             ILogger log)
         {
             log.LogInformation("ProfileGet running."); // TODO Remove (should be unnecessary)
