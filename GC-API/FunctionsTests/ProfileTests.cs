@@ -51,7 +51,7 @@ namespace FunctionsTests
             // Get the single registered user
             Assert.IsTrue(DocumentDBRepository<GcUser>.Client.FindUniqueItem(logger, x => x.CreateDocumentQuery<GcUser>("dbs/userdb/colls/usercoll"), out var user, out var response));
 
-            var result = ProfileGet.Run(request, DocumentDBRepository<GcUser>.Client, user.id, logger);
+            var result = ProfileGet.Run(request, user.id, DocumentDBRepository<GcUser>.Client, logger);
 
             Assert.IsInstanceOfType(result, typeof(OkObjectResult));
             var profile = (result as OkObjectResult).Value;
