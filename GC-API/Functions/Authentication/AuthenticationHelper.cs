@@ -162,7 +162,7 @@ namespace Functions.Authentication
                     errorResponse = null;
                     return true;
                 case JwtValidationResult.Expired: 
-                    errorResponse = new UnauthorizedObjectResult("Expired token.");
+                    errorResponse = new UnauthorizedObjectResult("Token expired.");
                     return false;
                 case JwtValidationResult.InvalidSignature:
                 case JwtValidationResult.MissingOrInvalidClaim:
