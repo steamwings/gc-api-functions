@@ -29,6 +29,7 @@ namespace Models
         {
             return new UiUser
             {
+                id = user.id,
                 name = user.userCore.name,
                 dob = user.userCore.dob,
                 phone = user.userCore.phone,

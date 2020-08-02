@@ -12,6 +12,11 @@ namespace Models.UI.User
     public class UiUser
     {
         /// <summary>
+        /// Unique ID, set by Cosmos
+        /// </summary>
+        public string id { get; set; }
+
+        /// <summary>
         /// Full name
         /// </summary>
         public string name { get; set; }

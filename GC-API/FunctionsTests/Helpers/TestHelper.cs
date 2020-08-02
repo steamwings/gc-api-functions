@@ -57,7 +57,7 @@ namespace FunctionsTests.Helpers
             if (DocumentDBRepository<GcUser>.Client is null) throw new ArgumentNullException(nameof(DocumentDBRepository<GcUser>.Client));
             var req = MakeRequest(new { user.name, user.email, user.password }, NullLogger.Instance);
             var result = Functions.Primitives.Register.Run(req, DocumentDBRepository<GcUser>.Client, NullLogger.Instance).GetAwaiter().GetResult();
-            return ((CreatedResult)result).Value.GetPropertyValue<string>("token");
+            return ((ObjectResult)result).Value.GetPropertyValue<string>("token");
         }
 
         /// <summary>

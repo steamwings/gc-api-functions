@@ -14,6 +14,8 @@ using Microsoft.Azure.Documents;
 using Models.Common.User;
 using Models.Database.User;
 using Common.Extensions;
+using Models;
+using Models.UI.User;
 
 namespace Functions.Primitives
 {
@@ -62,9 +64,10 @@ namespace Functions.Primitives
 
             if(client.WrapCall(log, x => x.CreateDocumentAsync("dbs/userdb/colls/usercoll/", user)).GetWrapResult(out var statusCode, out var response))
             {
-                var token = AuthenticationHelper.GenerateJwt(log, response.Resource.Id);
-                // We intentionally share only the id and not the full path to the frontend
-                return new CreatedResult(response.Resource.Id, new { coreUser.name, token });
+                user.id = response.Resource.Id;
+                var uiUser = ModelConverter.Convert<UiUser>(user);
+                uiUser.token = AuthenticationHelper.GenerateJwt(log, response.Resource.Id);
+                return new ObjectResult(uiUser) { StatusCode = 201 };
             }
             else return new StatusCodeResult((int)statusCode);
 

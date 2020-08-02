@@ -14,7 +14,7 @@ namespace FunctionsTests.Extensions
         /// <returns></returns>
         public static T GetPropertyValue<T>(this object obj, string property)
         {
-            return (T) obj.GetType().GetProperty(property).GetValue(obj, null);
+            return (T) obj.GetType().GetProperty(property)?.GetValue(obj, null);
         }
 
         /// <summary>
