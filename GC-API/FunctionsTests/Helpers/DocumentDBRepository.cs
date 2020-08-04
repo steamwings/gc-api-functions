@@ -3,7 +3,6 @@ using Microsoft.Azure.Documents.Client;
 using Microsoft.Azure.Documents.Linq;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
@@ -23,8 +22,6 @@ namespace FunctionsTests.Helpers
         private const string DEFAULT_COL = "usercoll";
         private static string DatabaseId = DEFAULT_DB;
         private static string CollectionId = DEFAULT_COL;
-
-        private static Database database;
 
         public static DocumentClient Client { get; private set; }
 
@@ -83,21 +80,12 @@ namespace FunctionsTests.Helpers
                 category is null ? null : new RequestOptions { PartitionKey = new PartitionKey(category) });
         }
 
-        /// <summary>
-        /// Initialize the DocumentDB repo with one DB and one collection
-        /// </summary>
-        /// <param name="endpoint">Where is the Cosmos emulator</param>
-        /// <param name="authKey">Cosmos emulator key</param>
-        /// <param name="partitionKey">Required now apparently... The default of /profile/domains is not a good one and should be updated when the real thing is</param>
-        /// <param name="uniqueKey">Add to prevent duplicates</param>
-        /// <param name="databaseId">DB name</param>
-        /// <param name="collectionId">Collection name</param>
-        public static void Initialize(string endpoint, string authKey, string partitionKey = "/profile/domains", string uniqueKey = "/userCore/email", string databaseId = DEFAULT_DB, string collectionId = DEFAULT_COL)
+        public static void Initialize(string endpoint, string authKey, string partitionKey = null, string uniqueKey = null, string databaseId = DEFAULT_DB, string collectionId = DEFAULT_COL)
         {
             DatabaseId = databaseId;
             CollectionId = collectionId;
             Client = new DocumentClient(new Uri(endpoint), authKey);
-            database = Client.CreateDatabaseIfNotExistsAsync(new Database { Id = DatabaseId }).GetAwaiter().GetResult();
+            CreateDatabaseIfNotExistsAsync().Wait();
             CreateCollectionIfNotExistsAsync(partitionKey, uniqueKey).Wait();
         }
 
@@ -106,37 +94,75 @@ namespace FunctionsTests.Helpers
             DeleteDatabaseAsync().Wait();
         }
 
-        private static async Task CreateCollectionIfNotExistsAsync(string partitionkey, string uniqueKey = null, int throughputRus = 400)
+        private static async Task CreateDatabaseIfNotExistsAsync()
         {
             try
             {
-                var collection = new DocumentCollection
-                {
-                    Id = CollectionId,
-                    PartitionKey = new PartitionKeyDefinition { Paths = new Collection<string> { partitionkey } }
-                };
-                if (uniqueKey != null)
-                {
-                    collection.UniqueKeyPolicy = new UniqueKeyPolicy
-                    {
-                        UniqueKeys = new Collection<UniqueKey>(new List<UniqueKey>
-                            {
-                                new UniqueKey { Paths = new Collection<string>(new List<string> {
-                                    uniqueKey,
-                                }) },
-                            })
-                    };
-                }
-
-
-                await Client.CreateDocumentCollectionIfNotExistsAsync(database?.SelfLink, collection);
+                await Client.ReadDatabaseAsync(UriFactory.CreateDatabaseUri(DatabaseId));
             }
             catch (DocumentClientException e)
             {
-                string a = e.Message;
-                throw;
+                if (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    await Client.CreateDatabaseAsync(new Database { Id = DatabaseId });
+                }
+                else
+                {
+                    throw;
+                }
             }
-            
+        }
+
+        private static async Task CreateCollectionIfNotExistsAsync(string partitionkey = null, string uniqueKey = null, int throughputRus = 400)
+        {
+            try
+            {
+                var uri = UriFactory.CreateDocumentCollectionUri(DatabaseId, CollectionId);
+                if (partitionkey is null)
+                {
+                    await Client.ReadDocumentCollectionAsync(uri);
+                }
+                else
+                {
+                    await Client.ReadDocumentCollectionAsync(uri, new RequestOptions { PartitionKey = new PartitionKey(partitionkey) });
+                }
+            }
+            catch (DocumentClientException e)
+            {
+                if (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    var docColl = new DocumentCollection
+                    {
+                        Id = CollectionId,
+                    };
+                    if (partitionkey != null)
+                    {
+                        docColl.PartitionKey = new PartitionKeyDefinition
+                        {
+                            Paths = new System.Collections.ObjectModel.Collection<string>(new List<string>() { partitionkey })
+                        };
+                    }
+                    if (uniqueKey != null)
+                    {
+                        docColl.UniqueKeyPolicy = new UniqueKeyPolicy
+                        {
+                            UniqueKeys = new System.Collections.ObjectModel.Collection<UniqueKey>(new List<UniqueKey>
+                            {
+                                new UniqueKey { Paths = new System.Collections.ObjectModel.Collection<string>(new List<string> { 
+                                    uniqueKey, 
+                                }) },
+                            })
+                        };
+                    }
+                    await Client.CreateDocumentCollectionAsync(
+                        UriFactory.CreateDatabaseUri(DatabaseId), docColl,
+                        new RequestOptions { OfferThroughput = throughputRus });
+                }
+                else
+                {
+                    throw;
+                }
+            }
         }
 
         private static async Task DeleteDatabaseAsync()

@@ -36,8 +36,7 @@ namespace Functions.Profile
 
             var link = $"dbs/userdb/colls/usercoll/docs/{id}";
 
-            var requestOptions = new RequestOptions() { PartitionKey = new PartitionKey(null) };
-            if (!client.WrapCall(log, x => x.ReadDocumentAsync<GcUser>(link, requestOptions)).GetWrapResult(out var statusCode, out var response))
+            if (!client.WrapCall(log, x => x.ReadDocumentAsync<GcUser>(link)).GetWrapResult(out var statusCode, out var response))
                 return new StatusCodeResult((int)statusCode);
             log.LogTrace("ReadDocAsync succeeded.");
              

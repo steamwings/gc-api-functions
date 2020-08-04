@@ -31,7 +31,7 @@ namespace FunctionsTests
         {
             var endpoint = (string)TestContext.Properties["endpoint"];
             var authKey = (string)TestContext.Properties["authKey"];
-            DocumentDBRepository<GcUser>.Initialize(endpoint, authKey);
+            DocumentDBRepository<GcUser>.Initialize(endpoint, authKey, null, "/coreUser/email");
             token = TestHelper.Register(TestHelper.TestUsers[testUserIndex]);
         }
 
