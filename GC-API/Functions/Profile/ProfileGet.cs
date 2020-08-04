@@ -10,6 +10,7 @@ using Microsoft.Azure.Documents.Client;
 using Common.Extensions;
 using Functions.Authentication;
 using Models.Database.User;
+using Microsoft.Azure.Documents;
 
 namespace Functions.Profile
 {
@@ -34,6 +35,7 @@ namespace Functions.Profile
             log.LogTrace("Authorized.");
 
             var link = $"dbs/userdb/colls/usercoll/docs/{id}";
+
             if (!client.WrapCall(log, x => x.ReadDocumentAsync<GcUser>(link)).GetWrapResult(out var statusCode, out var response))
                 return new StatusCodeResult((int)statusCode);
             log.LogTrace("ReadDocAsync succeeded.");

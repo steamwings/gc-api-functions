@@ -46,13 +46,10 @@ namespace FunctionsTests
 
             var result = Functions.Primitives.Register.Run(request, DocumentDBRepository<GcUser>.Client, logger).GetAwaiter().GetResult();
 
-            Assert.IsInstanceOfType(result, typeof(CreatedResult));
-            var value = ((CreatedResult)result).Value;
-            var rName = value.GetPropertyValue<string>("name");
-            var rToken = value.GetPropertyValue<string>("token");
-            Assert.IsNotNull(rToken);
-            Assert.IsNotNull(rName);
-            Assert.AreEqual(name, rName);
+            Assert.IsInstanceOfType(result, typeof(ObjectResult));
+            var objResult = (ObjectResult)result;
+            Assert.AreEqual(201, objResult.StatusCode);
+            AssertValidLoginRegisterResponse(objResult.Value, name, email);
         }
 
         #endregion
@@ -120,11 +117,7 @@ namespace FunctionsTests
 
             Assert.IsInstanceOfType(result, typeof(OkObjectResult));
             var value = ((OkObjectResult)result).Value;
-            var rName = value.GetPropertyValue<string>("name");
-            var rToken = value.GetPropertyValue<string>("token");
-            Assert.IsNotNull(rToken);
-            Assert.IsNotNull(rName);
-            Assert.AreEqual(name, rName);
+            AssertValidLoginRegisterResponse(value, name, email);
         }
 
         #endregion
@@ -152,5 +145,17 @@ namespace FunctionsTests
         }
 
         #endregion
+
+        private void AssertValidLoginRegisterResponse(object value, string name, string email)
+        {
+            var rName = value.GetPropertyValue<string>("name");
+            var rToken = value.GetPropertyValue<string>("token");
+            var rEmail = value.GetPropertyValue<string>("email");
+            var id = value.GetPropertyValue<string>("id");
+            Assert.IsNotNull(rToken);
+            Assert.IsNotNull(id);
+            Assert.AreEqual(name, rName);
+            Assert.AreEqual(email, rEmail);
+        }
     }
 }
