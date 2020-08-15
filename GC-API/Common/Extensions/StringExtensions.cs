@@ -1,6 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
+using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
 
@@ -19,7 +18,7 @@ namespace Common.Extensions
         {
             try
             {
-                encodedStr = Convert.ToBase64String(encoding.GetBytes(str));
+                encodedStr = System.Convert.ToBase64String(encoding.GetBytes(str));
                 return true;
             }
             catch(EncoderFallbackException)
@@ -43,7 +42,7 @@ namespace Common.Extensions
         {
             try
             {
-                decodedStr = encoding.GetString(Convert.FromBase64String(str));
+                decodedStr = encoding.GetString(System.Convert.FromBase64String(str));
                 return true;
             }
             catch (DecoderFallbackException)
@@ -68,7 +67,7 @@ namespace Common.Extensions
         {
             try
             {
-                return encoding.GetString(Convert.FromBase64String(str));
+                return encoding.GetString(System.Convert.FromBase64String(str));
             } catch
             {
                 return returnOnFail ?? $"{str}_decodeFailed";
@@ -94,6 +93,50 @@ namespace Common.Extensions
                 deserialized = default;
                 return false;
             }
+        }
+
+        // TODO Remove?
+        ///// <summary>
+        ///// Attempt to parse a double and return a double even on failure
+        ///// </summary>
+        ///// <param name="str"></param>
+        ///// <param name="fallback"></param>
+        ///// <returns>The parsed double or <paramref name="fallback"/></returns>
+        //public static double ToDouble(this string str, double fallback = double.NaN)
+        //{
+        //    return double.TryParse(str, out var result)
+        //        ? result
+        //        : fallback;
+        //}
+
+        ///// <summary>
+        ///// Attempt to parse an int and return an int even on failure
+        ///// </summary>
+        ///// <param name="str"></param>
+        ///// <param name="fallback"></param>
+        ///// <returns></returns>
+        //public static int ToInt(this string str, int fallback = int.MinValue)
+        //{
+        //    return int.TryParse(str, out var result)
+        //        ? result
+        //        : fallback;
+        //}
+
+        /// <summary>
+        /// Parse a string; if parsing fails, return the <paramref name="fallback"/> value
+        /// </summary>
+        /// <typeparam name="T">Type to parse to, detected from <paramref name="fallback"/></typeparam>
+        /// <param name="str">this string to parse</param>
+        /// <param name="fallback">Value to return if parsing fails</param>
+        /// <returns>The parsed <typeparamref name="T"/> value or <paramref name="fallback"/></returns>
+        /// <remarks> This is intended to work for numeric types like int and double. </remarks>
+        public static T ParseWithDefault<T>(this string str, T fallback)
+        {
+            var converter = TypeDescriptor.GetConverter(typeof(T));
+            if (converter != null && converter.IsValid(str))
+                return (T) converter.ConvertFromString(str);
+            
+            return fallback;
         }
     }
 }

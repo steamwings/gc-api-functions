@@ -23,7 +23,7 @@ namespace FunctionsTests
             new UserProfile { domains = "actor", bio = "amazing" },
         };
         public TestContext TestContext { get; set; }
-        private static string token;
+        private string token;
         private const int testUserIndex = 0;
 
         [TestInitialize]

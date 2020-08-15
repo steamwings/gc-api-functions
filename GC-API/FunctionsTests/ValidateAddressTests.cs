@@ -7,7 +7,7 @@ using Microsoft.Extensions.Primitives;
 using Microsoft.Extensions.Logging.Abstractions;
 using FunctionsTests.Helpers;
 using System.Collections.Generic;
-using Functions.Authentication;
+using Functions.Helpers;
 using Functions.Utility;
 
 namespace FunctionsTests

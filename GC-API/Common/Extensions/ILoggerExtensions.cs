@@ -2,33 +2,51 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Linq;
+using System.Text;
+using Microsoft.Extensions.Primitives;
 
 namespace Common.Extensions
 {
     public static class ILoggerExtensions
     {
+        /// <inheritdoc cref="CheckNull(ILogger, LogLevel, object, out string, string, string, int)"/>
         public static bool NullWarning(this ILogger log, object checkValues, string message = null, [CallerMemberName] string method = "", [CallerLineNumber] int line = -1)
         {
-            return NullWarning(log, checkValues, out _, message, method, line);
+            return CheckNull(log, LogLevel.Warning, checkValues, out _, message, method, line);
+        }
+
+        /// <inheritdoc cref="CheckNull(ILogger, LogLevel, object, out string, string, string, int)"/>
+        public static bool NullError(this ILogger log, object checkValues, string message = null, [CallerMemberName] string method = "", [CallerLineNumber] int line = -1)
+        {
+            return CheckNull(log, LogLevel.Error, checkValues, out _, message, method, line);
+        }
+
+        /// <inheritdoc cref="CheckNull(ILogger, LogLevel, object, out string, string, string, int)"/>
+        public static bool NullWarning(this ILogger log, object checkValues, out string nulls, string message = null, [CallerMemberName] string method = "", [CallerLineNumber] int line = -1)
+        {
+            return CheckNull(log, LogLevel.Warning, checkValues, out nulls, message, method, line);
         }
 
         /// <summary>
-        /// Log a warning if any properties of <paramref name="checkValues"/> are null.
+        /// Log if any properties of <paramref name="checkValues"/> are null.
         /// </summary>
         /// <param name="log">this <see cref="ILogger"/></param>
+        /// <param name="level">level at which to log</param>
         /// <param name="checkValues">object with properties to check</param>
         /// <param name="nulls">will output the name(s) of any null properties</param>
         /// <param name="message">can be included in warning log, optional</param>
         /// <param name="method">Auto-populated; do not use unless overloading.</param>
         /// <param name="line">Auto-populated; do not use unless overloading.</param>
         /// <returns><c>True</c> if there are any null properties.</returns>
-        public static bool NullWarning(this ILogger log, object checkValues, out string nulls, string message = null, [CallerMemberName] string method = "", [CallerLineNumber] int line = -1)
+        /// <returns></returns>
+        private static bool CheckNull(this ILogger log, LogLevel level, object checkValues, out string nulls, string message, string method, int line)
         {
             nulls = checkValues.GetType().GetProperties()
-                .Aggregate("", (result, property) => property.GetValue(checkValues) is null ? result + property.Name + ',' : result).Trim(',');
-            if(nulls != string.Empty)
+                .Aggregate(new StringBuilder(), (builder, property) => property.GetValue(checkValues) is null ? builder.Append(property.Name).Append(',').Append(' ') : builder)
+                .ToString().Trim(',', ' ');
+            if (nulls != string.Empty)
             {
-                log.LogWarning($"{method}: {message}: Value(s) {nulls} null at line {line}.");
+                log.Log(level, "{0}: {1}: Value(s) {2} null at line {3}.", method, message, nulls, line);
                 return true;
             }
             return false;

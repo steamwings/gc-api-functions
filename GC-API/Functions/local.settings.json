@@ -5,8 +5,13 @@
     "AzureWebJobsDashboard": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet",
     "CosmosDBConnection": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==",
+    "AzureWebJobsSharedStorage": "UseDevelopmentStorage=true",
     "AuthenticationSecret": "A2+m2T2FRhKHLF7p4iPuJQ==",
-    "SessionTokenDays": "18"
+    "SessionTokenDays": "18",
+    "ProfilePicUploadSasExpiryHours": "1",
+    "ProfilePicUploadSasPermissions": "8",
+    "ProfilePicDefaultSasExpiryHours": "200",
+    "ProfilePicDefaultSasPermissions": "1"
   },
   "Host": {
     "CORS": "*"

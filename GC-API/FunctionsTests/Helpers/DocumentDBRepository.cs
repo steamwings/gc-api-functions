@@ -167,7 +167,8 @@ namespace FunctionsTests.Helpers
 
         private static async Task DeleteDatabaseAsync()
         {
-            await Client.DeleteDatabaseAsync(UriFactory.CreateDatabaseUri(DatabaseId));
+            if (Client != null)
+                await Client.DeleteDatabaseAsync(UriFactory.CreateDatabaseUri(DatabaseId));
         }
     }
 }

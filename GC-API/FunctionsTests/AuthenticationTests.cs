@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using FunctionsTests.Extensions;
-using Functions.Authentication;
+using Functions.Helpers;
 using FunctionsTests.Helpers;
 
 namespace FunctionsTests

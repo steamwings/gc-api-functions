@@ -13,6 +13,7 @@ using Models.Database.User;
 using Common.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using FunctionsTests.Extensions;
+using System.Collections;
 
 namespace FunctionsTests.Helpers
 {
@@ -21,8 +22,9 @@ namespace FunctionsTests.Helpers
     {
         public static readonly List<(string name, string email, string password)> TestUsers = new List<(string, string, string)> {
             ("A Name", "e@mail.com", "password"),
-            ("A Looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong name",
-                "e@mail.com", "P@$$$$/W)\\0RD`^")
+            ("A Name That Is Looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
+                "e@mail.com", "P@$$$$/W)\\0RD`^"),
+            ("綠雞蛋和火腿", "綠雞蛋和@火腿.com", "🂫🂖🊂🺀🺇🤰🲙🅧🚢😬🛈👘🻪🙨🶞💼🧴🷗🲍🹸🛌🇐👦🡱🩢🷣🬳🈼🪛🡩🁏🅨🔹🇮🂕🞑🎦🐥😌🖣🷚🠃🰳🨬🣄🠾🀶🺈🁎🗠🔴🱽🶇🛎🃐🰫🪺🞜🟲🠻🪏🹨🐻🬴🰴🨇🺮🃊🡲🤂🏸🖃🤩🴲🎬🠉🟪🲆🳌🆓🕵🉌🨈🆏🨬🰀🗙🕉🯸🊠🐢🰯🝌🃼🞋🋰🋛🬨🹕📠🩹🊉🛘🛺🊥🚜🞴💉🜍😍🣆🏥🷊🍴🅵🵊🯊💆🶇🢠🭣🅵😌💲🫂📽🟈🍍🩳💼🴍🨑🋧🉎🯤🂡🗁🥓🞵🀿🨎🜨🻫🕜🁻🃤🻌🦔🍫🺏🨚🉜🤗🹋📷🳞🱰🩏💤🛵🙮🞕🞓🢫🻟🵷🜑😺🬞🢽🊕🺝🇚🷹🔃🻹🇼🚀🛲🟥🩽🆏🤛🟌🟁🷉🖸🲋😢🅤🈕🲦🀶🏔🁬🰈🏉🇦🅹🅰🶷🞣🤕🳻🩘🩾🴜🩒🝤🬈🖫💇🢃📾🰉🆁🬈🄒🠨🪬😌🆷🵶🖼🔓📟🜬🺻🩽🹘🲁🋘🂤🀏🺱🱅📉🈎🛦🴬🣿🮔🆤🦰🄵🭕🮅🪸🮭🇀👞🝧🜉🫑🹤🆉🕎🠍🰲🛋🰲🂀🗃🴆🞡🊔🊍🞴🍫🣠🤆🖫🇄🰻🸍👋🄱🵝🱾🟠🭴🡅🦟🤶🻦🱪🡇🐽😶👳🪩🕾🗑🛥🟘🞽🝖🊢🊖🭥"),
         };
 
         private static StreamWriter sw = null;
@@ -43,9 +45,23 @@ namespace FunctionsTests.Helpers
         public static void Init(TestContext testContext)
         {
             ClearCosmosDb(testContext);
-            // Since local.settings.json is only used for local runs (and not unit tests)
-            Environment.SetEnvironmentVariable("AuthenticationSecret", (string)testContext.Properties["AuthenticationSecret"]);
-            Environment.SetEnvironmentVariable("SessionTokenDays", (string)testContext.Properties["SessionTokenDays"]);
+
+            // local.settings.json is only used for local runs (and not unit/integration tests which just get *.runsettings from TestContext)
+            // This allows certain configuration values from TestContext to be read the same way as for local runs and production
+            foreach (DictionaryEntry property in testContext.Properties)
+            {
+                if (property.Value is string value)
+                {
+                    Environment.SetEnvironmentVariable((string)property.Key, value);
+                }
+            }
+        }
+
+        public static void SetupUserDb(TestContext context)
+        {
+            var endpoint = (string)context.Properties["endpoint"];
+            var authKey = (string)context.Properties["authKey"];
+            DocumentDBRepository<GcUser>.Initialize(endpoint, authKey, null, "/coreUser/email");
         }
 
         /// <summary>
@@ -65,6 +81,7 @@ namespace FunctionsTests.Helpers
         /// </summary>
         internal static void Cleanup()
         {
+            DocumentDBRepository<GcUser>.Teardown(); // This is safe to call even when Client is null
             sw?.Dispose();
             sr?.Dispose();
         }
