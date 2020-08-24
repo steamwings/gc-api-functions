@@ -1,0 +1,41 @@
+using System;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using Common.Extensions;
+using Functions.Helpers;
+using Microsoft.Azure.Storage.Blob;
+
+namespace Functions.Profile
+{
+    /// <summary>
+    /// Return a SAS URL at which to get profile pictures
+    /// </summary>
+    public static class PictureUrl
+    {
+        [FunctionName("PictureUrl")]
+        public static IActionResult Run(
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "profile/pic-url")] HttpRequest req,
+            [Blob("profile-pics", Connection = "SharedStorage")] CloudBlobContainer container,
+            ILogger log)
+        {
+            log = log.GetLoggerWithPrefix(nameof(PictureUrl));
+            log.LogTrace("Processing request...");
+
+            if (!AuthenticationHelper.Authorize(log, req.Headers, out var errorResponse))
+                return errorResponse;
+            
+            if(!StorageHelper.TryGetServiceSas(log, out var sasUrl, container.Name, container.Uri.ToString(),
+                accountName: Config.Get(ConfigKeys.SharedStorageAccountName),
+                accountKey: Config.Get(ConfigKeys.SharedStorageKey),
+                hours: Config.Get(ConfigKeys.ProfilePicDefaultSasExpiryHours).ParseWithDefault(.5),
+                permissions: Config.Get(ConfigKeys.ProfilePicDefaultSasPermissions).ParseWithDefault(1)))
+                return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+
+            return new OkObjectResult(sasUrl);
+        }
+    }
+}

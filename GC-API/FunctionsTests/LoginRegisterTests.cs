@@ -133,7 +133,7 @@ namespace FunctionsTests
             var testUserIndex = 0;
             Register(testUserIndex);
             var logger = TestHelper.MakeLogger();
-            var (name, email, password) = TestHelper.TestUsers[testUserIndex];
+            var (_, email, password) = TestHelper.TestUsers[testUserIndex];
             var requestBodyValues = new { email, password };
             requestBodyValues.SetAnonymousObjectProperty(propertyToNull, null);
             var request = TestHelper.MakeRequest(requestBodyValues, logger);

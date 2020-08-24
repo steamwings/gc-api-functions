@@ -48,25 +48,25 @@ namespace Common.Extensions
         /// <param name="item">Should only be used when <c>True</c> is returned.</param>
         /// <param name="errorResponse">Should only be used when <c>False</c> is returned.</param>
         /// <param name="callerName">Auto-populated. Will generally be "Run" for Azure functions.</param>
-        /// <returns><c>True</c> when <paramref name="item"/> was found.</returns>
-        /// <remarks> If this method does not prove reusable, then remove it and just paste this code back. 
+        /// <returns><c>True</c> when one result, <paramref name="item"/>, was found.</returns>
+        /// <remarks>The expectation If this method does not prove reusable, then remove it and just paste this code back. 
         /// That at least provides the advantage of less generic log messages.</remarks>
-        public static bool FindUniqueItem<T>(this DocumentClient client, ILogger log, Func<DocumentClient, IQueryable<T>> func,  out T item, out IStatusCodeActionResult errorResponse, [CallerMemberName] string callerName = "")
+        public static bool TryFindUniqueItem<T>(this DocumentClient client, ILogger log, Func<DocumentClient, IQueryable<T>> func,  out T item, out IStatusCodeActionResult errorResponse, [CallerMemberName] string callerName = "")
         {
             var items = func.Invoke(client);
             item = default;
             errorResponse = new StatusCodeResult(500);
             switch (items.Count())
             {
-                case 1: break; // Found!
+                case 1: break; // Single result found!
                 case 0:
                     log.LogTrace($"No {typeof(T).GetType().Name} found for {callerName}");
                     errorResponse = new NotFoundResult();
                     return false;
                 default:
                     log.LogCritical($"More than one {typeof(T).GetType().Name} for {callerName}");
-                    // Writing code to recover from this (e.g. change one user's id) should not be necessary
-                    // but might end up being useful...
+                    // Writing code to recover from this (e.g. when searching by id, change one user's id to ensure no duplicates) 
+                    // should not be necessary, but might end up being useful...
                     return false;
             }
             item = items.AsEnumerable().Single();

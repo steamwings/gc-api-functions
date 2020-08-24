@@ -48,9 +48,7 @@ namespace FunctionsTests
             var logger = TestHelper.MakeLogger();
             var request = TestHelper.EmptyRequest;
             request.Headers.Add("Authorization", $"Bearer {token}");
-            // Get the single registered user
-            Assert.IsTrue(DocumentDBRepository<GcUser>.Client.FindUniqueItem(logger, x => x.CreateDocumentQuery<GcUser>("dbs/userdb/colls/usercoll"), out var user, out var response));
-
+            var user = TestHelper.GetOnlyUser(logger);
             var result = ProfileGet.Run(request, user.id, DocumentDBRepository<GcUser>.Client, logger);
 
             Assert.IsInstanceOfType(result, typeof(OkObjectResult));

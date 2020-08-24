@@ -45,7 +45,7 @@ namespace Functions.Primitives
             GcUser user;
             if (id is null)
             {
-                if(!client.FindUniqueItem(log,
+                if(!client.TryFindUniqueItem(log,
                     x => x.CreateDocumentQuery<GcUser>("dbs/userdb/colls/usercoll")
                         .Where(u => u.userCore.email == email),
                     out user, out var errorResponse)) {
