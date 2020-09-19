@@ -95,33 +95,6 @@ namespace Common.Extensions
             }
         }
 
-        // TODO Remove?
-        ///// <summary>
-        ///// Attempt to parse a double and return a double even on failure
-        ///// </summary>
-        ///// <param name="str"></param>
-        ///// <param name="fallback"></param>
-        ///// <returns>The parsed double or <paramref name="fallback"/></returns>
-        //public static double ToDouble(this string str, double fallback = double.NaN)
-        //{
-        //    return double.TryParse(str, out var result)
-        //        ? result
-        //        : fallback;
-        //}
-
-        ///// <summary>
-        ///// Attempt to parse an int and return an int even on failure
-        ///// </summary>
-        ///// <param name="str"></param>
-        ///// <param name="fallback"></param>
-        ///// <returns></returns>
-        //public static int ToInt(this string str, int fallback = int.MinValue)
-        //{
-        //    return int.TryParse(str, out var result)
-        //        ? result
-        //        : fallback;
-        //}
-
         /// <summary>
         /// Parse a string; if parsing fails, return the <paramref name="fallback"/> value
         /// </summary>

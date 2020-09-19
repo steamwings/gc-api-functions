@@ -38,7 +38,6 @@ namespace FunctionsTests
         [TestCleanup]
         public void Cleanup()
         {
-            DocumentDBRepository<GcUser>.Teardown();
             TestHelper.Cleanup();
         }
 

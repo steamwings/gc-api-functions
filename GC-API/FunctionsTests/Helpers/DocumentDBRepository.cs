@@ -92,6 +92,7 @@ namespace FunctionsTests.Helpers
         public static void Teardown()
         {
             DeleteDatabaseAsync().Wait();
+            Client = null;
         }
 
         private static async Task CreateDatabaseIfNotExistsAsync()

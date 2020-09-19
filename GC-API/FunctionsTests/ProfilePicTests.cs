@@ -10,6 +10,10 @@ using Models.Database.User;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Azure.Documents;
 using FunctionsTests.Extensions;
+using System.Reflection;
+using System.IO;
+using System.Threading.Tasks;
+using Microsoft.Azure.Storage;
 
 namespace FunctionsTests
 {
@@ -23,17 +27,16 @@ namespace FunctionsTests
 
         private CloudBlobContainer _container;
         private string _token;
-        private string _idBlockUrl;
         private GcUser _user;
 
         [TestInitialize]
         public void TestInit()
         {
-            _container = TestHelper.GetStorageContainer(TestContext, TestHelper.StorageContainer.ProfilePics);
-            _container.Create();
+            _container = TestHelper.CreateStorageContainer(TestContext, TestHelper.StorageContainer.ProfilePics);
             TestHelper.SetupUserDb(TestContext);
             _token = TestHelper.Register(testUser);
             _user = TestHelper.GetOnlyUser(NullLogger.Instance);
+            Assert.IsTrue(File.Exists(testPicPath));
         }
 
         [TestCleanup]
@@ -42,8 +45,10 @@ namespace FunctionsTests
             TestHelper.Cleanup();
         }
 
-        // [TestMethod] // This is normally run as part of other tests
-        public void GetDefaultSasUrl()
+        [DataRow(nameof(Download), true)]
+        [DataRow(nameof(Upload), false)]
+        [DataTestMethod]
+        public void GetDefaultSasUrl(string functionName, bool shouldPass)
         {
             var log = TestHelper.MakeLogger();
             var request = TestHelper.EmptyRequest;
@@ -54,54 +59,74 @@ namespace FunctionsTests
             Assert.That.IsOfType<OkObjectResult>(result, out var okResult);
             Assert.That.IsOfType<string>(okResult.Value, out var url);
             Assert.IsTrue(Uri.IsWellFormedUriString(url, UriKind.Absolute));
-            _idBlockUrl = url.Trim('/') + '/' + _user.id;
+
+            var container = new CloudBlobContainer(new Uri(url));
+            Assert.AreEqual(_container.Uri.ToString(), container.Uri.ToString());
+
+            var blob = container.GetBlockBlobReference(_user.id);
+
+            typeof(ProfilePicTests).GetMethod(functionName, BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(this, new object[] { blob, shouldPass, nameof(GetDefaultSasUrl) });
         }
 
-        // [TestMethod] // This is normally run as part of other tests
-        public void GetUploadSasUrl()
+        [DataRow(nameof(Upload), true)]
+        [DataRow(nameof(Download), false)]
+        [DataTestMethod]
+        public void GetUploadSasUrl(string functionName, bool shouldPass)
         {
             var log = TestHelper.MakeLogger();
             var request = TestHelper.EmptyRequest;
             request.Headers.Add("Authorization", $"Bearer {_token}");
-          
-            var result = PictureUploadUrl.Run(request, _container, _user.id, log);
 
-            Assert.IsInstanceOfType(result, typeof(OkObjectResult));
+            var userPicBlob = _container.GetBlockBlobReference(_user.id);
+            var result = PictureUploadUrl.Run(request, userPicBlob, _user.id, log);
+
             Assert.That.IsOfType<OkObjectResult>(result, out var okResult);
             Assert.That.IsOfType<string>(okResult.Value, out var url);
             Assert.IsTrue(Uri.IsWellFormedUriString(url, UriKind.Absolute));
-            _idBlockUrl = url;
+
+            var blob = new CloudBlockBlob(new Uri(url));
+            Assert.AreEqual(userPicBlob.Uri.ToString(), blob.Uri.ToString());
+
+            typeof(ProfilePicTests).GetMethod(functionName, BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(this, new object[] { blob, shouldPass, nameof(GetUploadSasUrl) });
+
         }
 
-        [DataRow(nameof(GetDefaultSasUrl), false)]
-        [DataRow(nameof(GetUploadSasUrl), true)]
-        [DataTestMethod]
-        public void Upload(string functionName, bool shouldPass)
+        private void Upload(CloudBlockBlob blob, bool shouldPass, [CallerMemberName] string caller = "")
         {
-            typeof(ProfilePicTests).GetMethod(functionName).Invoke(this, new object[0]);
-
+            //typeof(ProfilePicTests).GetMethod(functionName).Invoke(this, new object[0]);
             // Upload picture 
-            var cloudBlockBlob = new CloudBlockBlob(new Uri(_idBlockUrl));
-            var uploadTask = cloudBlockBlob.UploadFromFileAsync(testPicPath);
-            uploadTask.Wait();
-            Assert.AreEqual(shouldPass, uploadTask.IsCompletedSuccessfully, $"Upload task had exception status {uploadTask.Status}, exception {uploadTask.Exception}");
+            //var cloudBlockBlob = new CloudBlockBlob(new Uri(_blockSas));
+
+            Assert.That.ThrowsExceptionIf<StorageException>(!shouldPass, () => blob.UploadFromFile(testPicPath));
+            
+            //Assert.AreEqual(shouldPass, uploadTask.IsCompletedSuccessfully, XloadFailMessage(uploadTask, shouldPass, caller));
         }
 
-        [DataRow(nameof(GetDefaultSasUrl), true)]
-        [DataRow(nameof(GetUploadSasUrl), false)]
-        [DataTestMethod]
-        public void Download(string functionName, bool shouldPass)
+        private void Download(CloudBlockBlob blob, bool shouldPass, [CallerMemberName] string caller = "")
         {
-            typeof(ProfilePicTests).GetMethod(functionName).Invoke(this, new object[0]);
-
+            //typeof(ProfilePicTests).GetMethod(functionName).Invoke(this, new object[0]);
             // Download picture 
-            var cloudBlockBlob = new CloudBlockBlob(new Uri(_idBlockUrl));
-            var downloadTask = cloudBlockBlob.DownloadTextAsync();
-            downloadTask.Wait();
-            Assert.AreEqual(shouldPass, downloadTask.IsCompletedSuccessfully, $"Upload task had exception status {downloadTask.Status}, exception {downloadTask.Exception}");
+            //var cloudBlockBlob = new CloudBlockBlob(new Uri(_blockSas));
+
+            // Upload so there is something to download
+            _container.GetBlockBlobReference(_user.id).UploadFromFile(testPicPath);
+
+            Assert.That.ThrowsExceptionIf<StorageException>(!shouldPass, () => blob.DownloadText());
+
+            //var downloadTask = blob.DownloadTextAsync();
+            //downloadTask.Wait();
+            //Assert.AreEqual(shouldPass, downloadTask.IsCompletedSuccessfully, XloadFailMessage(downloadTask, shouldPass, caller));
         }
 
-
-
+        /// <summary>
+        /// Generate an appropriate failure message in <see cref="Upload"/> or <see cref="Download"/>.
+        /// </summary>
+        /// <returns>A preformatted message.</returns>
+        private string XloadFailMessage(Task task, bool shouldPass, string testName, [CallerMemberName] string caller = "")
+         => $"{testName}: {caller} " + (shouldPass 
+            ? $"had status {task.Status} and exception {task.Exception}" 
+            : $"should not have succeeded!");
     }
 }

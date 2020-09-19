@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using JWT.Exceptions;
 
 namespace Functions.Helpers
 {

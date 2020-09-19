@@ -27,7 +27,15 @@ namespace Functions.Profile
 
             if (!AuthenticationHelper.Authorize(log, req.Headers, out var errorResponse))
                 return errorResponse;
-            
+
+            var policy = new SharedAccessBlobPolicy() {
+                Permissions = SharedAccessBlobPermissions.Read,
+                SharedAccessExpiryTime = DateTimeOffset.Now.AddHours(Config.Get(ConfigKeys.ProfilePicDefaultSasExpiryHours).ParseWithDefault(.5)),
+                SharedAccessStartTime = DateTimeOffset.Now.AddMinutes(-2)
+            };
+
+            return new OkObjectResult(container.Uri + container.GetSharedAccessSignature(policy));
+
             if(!StorageHelper.TryGetServiceSas(log, out var sasUrl, container.Name, container.Uri.ToString(),
                 accountName: Config.Get(ConfigKeys.SharedStorageAccountName),
                 accountKey: Config.Get(ConfigKeys.SharedStorageKey),

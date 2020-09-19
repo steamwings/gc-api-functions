@@ -43,7 +43,7 @@ namespace Functions.Helpers
                 BlobContainerName = containerName,
                 Resource = "c",
             };
-
+            
             if (blobName is null) // SAS for container
             { 
                 sasBuilder.SetPermissions((BlobContainerSasPermissions)permissions);

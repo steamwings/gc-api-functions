@@ -41,22 +41,24 @@ namespace Common.Extensions
         /// <returns></returns>
         private static bool CheckNull(this ILogger log, LogLevel level, object checkValues, out string nulls, string message, string method, int line)
         {
+            if (checkValues is null) return CheckNull(log, level, new { checkValues }, out nulls, message, method, line);
+
             nulls = checkValues.GetType().GetProperties()
                 .Aggregate(new StringBuilder(), (builder, property) => property.GetValue(checkValues) is null ? builder.Append(property.Name).Append(',').Append(' ') : builder)
                 .ToString().Trim(',', ' ');
             if (nulls != string.Empty)
             {
-                log.Log(level, "{0}: {1}: Value(s) {2} null at line {3}.", method, message, nulls, line);
+                log?.Log(level, "{0}: {1}: Value(s) {2} null at line {3}.", method, message, nulls, line);
                 return true;
             }
             return false;
         }
 
         /// <summary>
-        /// Creates an <see cref="ILogger"/> which always prints with a prefix generated from <paramref name="prefixes"/>
+        /// Creates an <see cref="ILogger"/> which prints with a prefix
         /// </summary>
-        /// <param name="log"></param>
-        /// <param name="prefixes"></param>
+        /// <param name="log">Used to create log wrapper</param>
+        /// <param name="prefixes">Used to generate prefix</param>
         /// <returns>A new log</returns>
         public static ILogger GetLoggerWithPrefix(this ILogger log, params string[] prefixes)
         {
@@ -66,7 +68,8 @@ namespace Common.Extensions
         /// <summary>
         /// Return an ILogger that prefixes with the function name
         /// </summary>
-        /// <remarks>TODO: This is sort of a hack, and should probably be replaced by a custom logger.</remarks>
+        /// <remarks>
+        /// TODO: This is sort of a hack, and should probably be replaced by use of <see cref="Microsoft.Extensions.Logging.ILogger.BeginScope(string, params object[])"/>.</remarks>
         private class LogWrapper : ILogger
         {
             private readonly ILogger _wrapped;

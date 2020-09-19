@@ -1,12 +1,9 @@
 using System;
-using System.IO;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using Common.Extensions;
 using Functions.Helpers;
 using Microsoft.Azure.Storage.Blob;
@@ -22,7 +19,7 @@ namespace Functions.Profile
         [FunctionName("PictureUploadUrl")]
         public static IActionResult Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = "profile/upload-pic-url/{id}")] HttpRequest req,
-            [Blob("profile-pics/{id}", Connection = "SharedStorage")] CloudBlobContainer container,
+            [Blob("profile-pics/{id}", Connection = "SharedStorage")] CloudBlockBlob blob,
             string id,
             ILogger log)
         {
@@ -35,7 +32,16 @@ namespace Functions.Profile
             if (id != authId) 
                 return new UnauthorizedResult();
 
-            if (!StorageHelper.TryGetServiceSas(log, out var sasUrl, container.Name, container.Uri.ToString(),
+            var policy = new SharedAccessBlobPolicy()
+            {
+                Permissions = SharedAccessBlobPermissions.Create | SharedAccessBlobPermissions.Write,
+                SharedAccessExpiryTime = DateTimeOffset.Now.AddHours(Config.Get(ConfigKeys.ProfilePicUploadSasExpiryHours).ParseWithDefault(.5)),
+                SharedAccessStartTime = DateTimeOffset.Now.AddMinutes(-2)
+            };
+
+            return new OkObjectResult(blob.Uri + blob.GetSharedAccessSignature(policy));
+
+            if (!StorageHelper.TryGetServiceSas(log, out var sasUrl, blob.Container.Name, blob.Uri.ToString(),
                 accountName: Config.Get(ConfigKeys.SharedStorageAccountName),
                 accountKey: Config.Get(ConfigKeys.SharedStorageKey),
                 hours: Config.Get(ConfigKeys.ProfilePicUploadSasExpiryHours).ParseWithDefault(.1),

@@ -178,15 +178,19 @@ namespace FunctionsTests.Helpers
             return lf.CreateLogger(name);
         }
 
-        public static CloudBlobContainer GetStorageContainer(TestContext testContext, StorageContainer container)
+        public static CloudBlobContainer CreateStorageContainer(TestContext testContext, StorageContainer container)
         {
             var storageBlobEndpoint = (string)testContext.Properties["StorageBlobEndpoint"];
-      
             var storageAccountName = (string)testContext.Properties["SharedStorageAccountName"];
             var storageKey = (string)testContext.Properties["SharedStorageKey"];
 
             var credentials = new StorageCredentials(storageAccountName, storageKey);
-            return new CloudBlobContainer(new Uri(storageBlobEndpoint + '/' + ContainerName(container) + '/'), credentials);
+            var uri = new Uri(storageBlobEndpoint + '/' + storageAccountName + '/' + ContainerName(container) + '/');
+            var blobContainer = new CloudBlobContainer(uri, credentials);
+
+            blobContainer.CreateIfNotExists(BlobContainerPublicAccessType.Container);
+
+            return blobContainer;
         }
 
         /// <summary>

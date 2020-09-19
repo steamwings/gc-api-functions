@@ -24,5 +24,16 @@ namespace FunctionsTests.Extensions
             }
             throw new AssertFailedException($"Type did not match type {typeof(T).Name}");
         }
+
+        public static Assert ThrowsExceptionIf<T>(this Assert assert, bool condition, Action action) where T : Exception
+        {
+            if (condition)
+                Assert.ThrowsException<T>(action);
+            else action.Invoke();
+
+            return assert;
+        }
+
+        public static Assert And(this Assert assert) => assert;
     }
 }
