@@ -17,9 +17,7 @@ namespace Functions.Helpers
         SharedStorageAccountName,
         SharedStorageKey,
         ProfilePicUploadSasExpiryHours,
-        ProfilePicUploadSasPermissions,
         ProfilePicDefaultSasExpiryHours,
-        ProfilePicDefaultSasPermissions
     }
 
     /// <summary>

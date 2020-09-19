@@ -4,15 +4,11 @@ using Microsoft.Azure.Storage.Blob;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Functions.Profile;
 using FunctionsTests.Helpers;
-using System.Runtime.CompilerServices;
-using System.Text;
 using Models.Database.User;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Azure.Documents;
 using FunctionsTests.Extensions;
 using System.Reflection;
 using System.IO;
-using System.Threading.Tasks;
 using Microsoft.Azure.Storage;
 
 namespace FunctionsTests
@@ -65,8 +61,7 @@ namespace FunctionsTests
 
             var blob = container.GetBlockBlobReference(_user.id);
 
-            typeof(ProfilePicTests).GetMethod(functionName, BindingFlags.Instance | BindingFlags.NonPublic)
-                .Invoke(this, new object[] { blob, shouldPass, nameof(GetDefaultSasUrl) });
+            Invoke(functionName, blob, shouldPass);
         }
 
         [DataRow(nameof(Upload), true)]
@@ -88,45 +83,29 @@ namespace FunctionsTests
             var blob = new CloudBlockBlob(new Uri(url));
             Assert.AreEqual(userPicBlob.Uri.ToString(), blob.Uri.ToString());
 
+            Invoke(functionName, blob, shouldPass);
+        }
+
+        /// <summary>
+        /// Helper method to simplify test invocations
+        /// </summary>
+        private void Invoke(string functionName, CloudBlockBlob blob, bool shouldPass)
+        {
             typeof(ProfilePicTests).GetMethod(functionName, BindingFlags.Instance | BindingFlags.NonPublic)
-                .Invoke(this, new object[] { blob, shouldPass, nameof(GetUploadSasUrl) });
-
+                .Invoke(this, new object[] { blob, shouldPass });
         }
 
-        private void Upload(CloudBlockBlob blob, bool shouldPass, [CallerMemberName] string caller = "")
+        private void Upload(CloudBlockBlob blob, bool shouldPass)
         {
-            //typeof(ProfilePicTests).GetMethod(functionName).Invoke(this, new object[0]);
-            // Upload picture 
-            //var cloudBlockBlob = new CloudBlockBlob(new Uri(_blockSas));
-
             Assert.That.ThrowsExceptionIf<StorageException>(!shouldPass, () => blob.UploadFromFile(testPicPath));
-            
-            //Assert.AreEqual(shouldPass, uploadTask.IsCompletedSuccessfully, XloadFailMessage(uploadTask, shouldPass, caller));
         }
 
-        private void Download(CloudBlockBlob blob, bool shouldPass, [CallerMemberName] string caller = "")
+        private void Download(CloudBlockBlob blob, bool shouldPass)
         {
-            //typeof(ProfilePicTests).GetMethod(functionName).Invoke(this, new object[0]);
-            // Download picture 
-            //var cloudBlockBlob = new CloudBlockBlob(new Uri(_blockSas));
-
             // Upload so there is something to download
             _container.GetBlockBlobReference(_user.id).UploadFromFile(testPicPath);
 
             Assert.That.ThrowsExceptionIf<StorageException>(!shouldPass, () => blob.DownloadText());
-
-            //var downloadTask = blob.DownloadTextAsync();
-            //downloadTask.Wait();
-            //Assert.AreEqual(shouldPass, downloadTask.IsCompletedSuccessfully, XloadFailMessage(downloadTask, shouldPass, caller));
         }
-
-        /// <summary>
-        /// Generate an appropriate failure message in <see cref="Upload"/> or <see cref="Download"/>.
-        /// </summary>
-        /// <returns>A preformatted message.</returns>
-        private string XloadFailMessage(Task task, bool shouldPass, string testName, [CallerMemberName] string caller = "")
-         => $"{testName}: {caller} " + (shouldPass 
-            ? $"had status {task.Status} and exception {task.Exception}" 
-            : $"should not have succeeded!");
     }
 }

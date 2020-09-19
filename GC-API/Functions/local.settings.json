@@ -9,9 +9,7 @@
     "AuthenticationSecret": "A2+m2T2FRhKHLF7p4iPuJQ==",
     "SessionTokenDays": "18",
     "ProfilePicUploadSasExpiryHours": "1",
-    "ProfilePicUploadSasPermissions": "8",
-    "ProfilePicDefaultSasExpiryHours": "200",
-    "ProfilePicDefaultSasPermissions": "1"
+    "ProfilePicDefaultSasExpiryHours": "200"
   },
   "Host": {
     "CORS": "*"

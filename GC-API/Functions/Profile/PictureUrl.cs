@@ -35,15 +35,6 @@ namespace Functions.Profile
             };
 
             return new OkObjectResult(container.Uri + container.GetSharedAccessSignature(policy));
-
-            if(!StorageHelper.TryGetServiceSas(log, out var sasUrl, container.Name, container.Uri.ToString(),
-                accountName: Config.Get(ConfigKeys.SharedStorageAccountName),
-                accountKey: Config.Get(ConfigKeys.SharedStorageKey),
-                hours: Config.Get(ConfigKeys.ProfilePicDefaultSasExpiryHours).ParseWithDefault(.5),
-                permissions: Config.Get(ConfigKeys.ProfilePicDefaultSasPermissions).ParseWithDefault(1)))
-                return new StatusCodeResult(StatusCodes.Status500InternalServerError);
-
-            return new OkObjectResult(sasUrl);
         }
     }
 }
