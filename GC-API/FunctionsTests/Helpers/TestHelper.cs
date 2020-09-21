@@ -71,7 +71,7 @@ namespace FunctionsTests.Helpers
             ClearCosmosDb(testContext);
 
             // local.settings.json is only used for local runs (and not unit/integration tests which just get *.runsettings from TestContext)
-            // This allows certain configuration values from TestContext to be read the same way as for local runs and production
+            // This allows configuration values from TestContext (from a *.runsettings file) to be read the same way in unit tests as for local runs and production
             foreach (DictionaryEntry property in testContext.Properties)
             {
                 if (property.Value is string value)
@@ -212,7 +212,10 @@ namespace FunctionsTests.Helpers
         /// </summary>
         /// <param name="container"></param>
         /// <returns>the name string</returns>
-        /// <remarks>This could be made an extension method if moved to a static class</remarks>
+        /// <remarks>
+        /// If simpler, this could be made programmatic by adding dashes and making lowercase.
+        /// This could be made an extension method if moved to a static class.
+        /// </remarks>
         private static string ContainerName(StorageContainer container)
             => container switch
             {

@@ -102,8 +102,10 @@ namespace FunctionsTests
 
         private void Download(CloudBlockBlob blob, bool shouldPass)
         {
-            // Upload so there is something to download
-            _container.GetBlockBlobReference(_user.id).UploadFromFile(testPicPath);
+            // Upload, if needed, so there is something to download
+            var realBlob = _container.GetBlockBlobReference(_user.id);
+            if(!realBlob.Exists())
+                realBlob.UploadFromFile(testPicPath);
 
             Assert.That.ThrowsExceptionIf<StorageException>(!shouldPass, () => blob.DownloadText());
         }
