@@ -19,7 +19,7 @@ namespace Functions.Profile
         [FunctionName("PictureUrl")]
         public static IActionResult Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = "profile/pic-url")] HttpRequest req,
-            [Blob("profile-pics", Connection = "SharedStorage")] CloudBlobContainer container,
+            [Blob("profile-pics", Connection = "SharedUserStorage")] CloudBlobContainer container,
             ILogger log)
         {
             log = log.GetLoggerWithPrefix(nameof(PictureUrl));

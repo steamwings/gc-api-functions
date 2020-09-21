@@ -19,7 +19,7 @@ namespace Functions.Profile
         [FunctionName("PictureUploadUrl")]
         public static IActionResult Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = "profile/upload-pic-url/{id}")] HttpRequest req,
-            [Blob("profile-pics/{id}", Connection = "SharedStorage")] CloudBlockBlob blob,
+            [Blob("profile-pics/{id}", Connection = "SharedUserStorage")] CloudBlockBlob blob,
             string id,
             ILogger log)
         {

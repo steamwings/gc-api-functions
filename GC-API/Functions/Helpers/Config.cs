@@ -14,8 +14,6 @@ namespace Functions.Helpers
     {
         AuthenticationSecret,
         SessionTokenDays,
-        SharedStorageAccountName,
-        SharedStorageKey,
         ProfilePicUploadSasExpiryHours,
         ProfilePicDefaultSasExpiryHours,
     }
