@@ -13,24 +13,50 @@ using Models.Database.User;
 using Common.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using FunctionsTests.Extensions;
+using System.Collections;
+using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
+using Microsoft.Azure.Storage.Blob;
+using Microsoft.Azure.Storage.Auth;
 
 namespace FunctionsTests.Helpers
 {
+    /// <summary>
+    /// Includes sample data and helper functions for unit and integration testing
+    /// </summary>
+    /// <remarks>
+    /// This should probably be broken out into multiple helpers...?
+    /// </remarks>
     [TestClass]
     public class TestHelper
     {
+        private const string testDataFolder = @".\TestData";
+
         public static readonly List<(string name, string email, string password)> TestUsers = new List<(string, string, string)> {
             ("A Name", "e@mail.com", "password"),
-            ("A Looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong name",
-                "e@mail.com", "P@$$$$/W)\\0RD`^")
+            ("A Name That Is Looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
+                "e@mail.com", "P@$$$$/W)\\0RD`^"),
+            ("綠雞蛋和火腿", "綠雞蛋和@火腿.com", "🂫🂖🊂🺀🺇🤰🲙🅧🚢😬🛈👘🻪🙨🶞💼🧴🷗🲍🹸🛌🇐👦🡱🩢🷣🬳🈼🪛🡩🁏🅨🔹🇮🂕🞑🎦🐥😌🖣🷚🠃🰳🨬🣄🠾🀶🺈🁎🗠🔴🱽🶇🛎🃐🰫🪺🞜🟲🠻🪏🹨🐻🬴🰴🨇🺮🃊🡲🤂🏸🖃🤩🴲🎬🠉🟪🲆🳌🆓🕵🉌🨈🆏🨬🰀🗙🕉🯸🊠🐢🰯🝌🃼🞋🋰🋛🬨🹕📠🩹🊉🛘🛺🊥🚜🞴💉🜍😍🣆🏥🷊🍴🅵🵊🯊💆🶇🢠🭣🅵😌💲🫂📽🟈🍍🩳💼🴍🨑🋧🉎🯤🂡🗁🥓🞵🀿🨎🜨🻫🕜🁻🃤🻌🦔🍫🺏🨚🉜🤗🹋📷🳞🱰🩏💤🛵🙮🞕🞓🢫🻟🵷🜑😺🬞🢽🊕🺝🇚🷹🔃🻹🇼🚀🛲🟥🩽🆏🤛🟌🟁🷉🖸🲋😢🅤🈕🲦🀶🏔🁬🰈🏉🇦🅹🅰🶷🞣🤕🳻🩘🩾🴜🩒🝤🬈🖫💇🢃📾🰉🆁🬈🄒🠨🪬😌🆷🵶🖼🔓📟🜬🺻🩽🹘🲁🋘🂤🀏🺱🱅📉🈎🛦🴬🣿🮔🆤🦰🄵🭕🮅🪸🮭🇀👞🝧🜉🫑🹤🆉🕎🠍🰲🛋🰲🂀🗃🴆🞡🊔🊍🞴🍫🣠🤆🖫🇄🰻🸍👋🄱🵝🱾🟠🭴🡅🦟🤶🻦🱪🡇🐽😶👳🪩🕾🗑🛥🟘🞽🝖🊢🊖🭥"),
+        };
+
+        public static readonly List<string> TestPictures = new List<string>();
+
+        public enum StorageContainer
+        {
+            ProfilePics
+        }
+
+        private static readonly Dictionary<string, string> TestPictureUrlsToPaths = new Dictionary<string, string>
+        {
+            { "https://via.placeholder.com/600/b0f7cc", "pic1" }
         };
 
         private static StreamWriter sw = null;
-        private static StreamReader sr = null;
         private static ILoggerFactory lf = LoggerFactory.Create(builder =>
         {
             builder.AddDebug();
-            builder.AddConsole()
+            builder.AddConsole() 
 #if DEBUG
                 .SetMinimumLevel(LogLevel.Debug);
 #else
@@ -40,12 +66,40 @@ namespace FunctionsTests.Helpers
         );
         
         [AssemblyInitialize]
-        public static void Init(TestContext testContext)
+        public static async Task Init(TestContext testContext)
         {
             ClearCosmosDb(testContext);
-            // Since local.settings.json is only used for local runs (and not unit tests)
-            Environment.SetEnvironmentVariable("AuthenticationSecret", (string)testContext.Properties["AuthenticationSecret"]);
-            Environment.SetEnvironmentVariable("SessionTokenDays", (string)testContext.Properties["SessionTokenDays"]);
+
+            // local.settings.json is only used for local runs (and not unit/integration tests which just get *.runsettings from TestContext)
+            // This allows configuration values from TestContext (from a *.runsettings file) to be read the same way in unit tests as for local runs and production
+            foreach (DictionaryEntry property in testContext.Properties)
+            {
+                if (property.Value is string value)
+                {
+                    Environment.SetEnvironmentVariable((string)property.Key, value);
+                }
+            }
+
+            if (Directory.Exists(testDataFolder))
+                Directory.Delete(testDataFolder, true);
+            Directory.CreateDirectory(testDataFolder);
+
+            // Download and create test files
+            using var http = new HttpClient();
+            foreach(var entry in TestPictureUrlsToPaths)
+            {
+                using var fileStream = File.OpenWrite(entry.Value); 
+                using var downloadStream = await http.GetStreamAsync(entry.Key);
+                downloadStream.CopyTo(fileStream);
+                TestPictures.Add(entry.Value);
+            }
+        }
+
+        public static void SetupUserDb(TestContext context)
+        {
+            var endpoint = (string)context.Properties["endpoint"];
+            var authKey = (string)context.Properties["authKey"];
+            DocumentDBRepository<GcUser>.Initialize(endpoint, authKey, null, "/coreUser/email");
         }
 
         /// <summary>
@@ -61,12 +115,37 @@ namespace FunctionsTests.Helpers
         }
 
         /// <summary>
+        /// Assert there is only one registered user and retrieve it
+        /// </summary>
+        /// <param name="log"></param>
+        /// <returns>the only registered <see cref="GcUser"/></returns>
+        public static GcUser GetOnlyUser(ILogger log)
+        {
+            Assert.IsTrue(DocumentDBRepository<GcUser>.Client.TryFindUniqueItem(log, x => x.CreateDocumentQuery<GcUser>("dbs/userdb/colls/usercoll"),
+                out var user, out _));
+            return user;
+        }
+
+        /// <summary>
+        /// Get a user by id and assert there is only one with that id
+        /// </summary>
+        /// <param name="log"></param>
+        /// <param name="id">user id to search for</param>
+        /// <returns>the <see cref="GcUser"/> with <paramref name="id"/></returns>
+        public static GcUser GetUser(ILogger log, string id)
+        {
+            Assert.IsTrue(DocumentDBRepository<GcUser>.Client.TryFindUniqueItem(log, x => x.CreateDocumentQuery<GcUser>("dbs/userdb/colls/usercoll")
+                .Where(x => x.id == id), out var user, out _));
+            return user;
+        }
+
+        /// <summary>
         /// This should be called if MakeRequest is called to dispose the internal streams
         /// </summary>
         internal static void Cleanup()
         {
+            DocumentDBRepository<GcUser>.Teardown(); // This is safe to call even when Client is null
             sw?.Dispose();
-            sr?.Dispose();
         }
 
         public static HttpRequest EmptyRequest => new DefaultHttpRequest(new DefaultHttpContext()) { };
@@ -86,7 +165,7 @@ namespace FunctionsTests.Helpers
             sw.Write(body);
             sw.Flush();
             request.Body.Seek(0, SeekOrigin.Begin);
-            logger?.LogTrace("Length: " + request.Body.Length);
+            logger?.LogTrace("Constructed request has length: " + request.Body.Length);
             return request;
         }
 
@@ -97,6 +176,21 @@ namespace FunctionsTests.Helpers
         public static ILogger MakeLogger([CallerMemberName] string name = "")
         {
             return lf.CreateLogger(name);
+        }
+
+        public static CloudBlobContainer CreateStorageContainer(TestContext testContext, StorageContainer container)
+        {
+            var storageBlobEndpoint = (string)testContext.Properties["StorageBlobEndpoint"];
+            var storageAccountName = (string)testContext.Properties["SharedStorageAccountName"];
+            var storageKey = (string)testContext.Properties["SharedStorageKey"];
+
+            var credentials = new StorageCredentials(storageAccountName, storageKey);
+            var uri = new Uri(storageBlobEndpoint + '/' + storageAccountName + '/' + ContainerName(container) + '/');
+            var blobContainer = new CloudBlobContainer(uri, credentials);
+
+            blobContainer.CreateIfNotExists(BlobContainerPublicAccessType.Container);
+
+            return blobContainer;
         }
 
         /// <summary>
@@ -113,5 +207,20 @@ namespace FunctionsTests.Helpers
             }
         }
 
+        /// <summary>
+        /// Get the actual name of the container
+        /// </summary>
+        /// <param name="container"></param>
+        /// <returns>the name string</returns>
+        /// <remarks>
+        /// If simpler, this could be made programmatic by adding dashes and making lowercase.
+        /// This could be made an extension method if moved to a static class.
+        /// </remarks>
+        private static string ContainerName(StorageContainer container)
+            => container switch
+            {
+                StorageContainer.ProfilePics => "profile-pics",
+                _ => throw new NotImplementedException(),
+            };
     }
 }

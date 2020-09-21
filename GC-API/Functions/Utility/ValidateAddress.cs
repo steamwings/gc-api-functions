@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json; // TODO Replace with System.Text.Json I think you just need this: 
 using System.Net.Http;
-using Functions.Authentication;
+using Functions.Helpers;
 using System.Web;
 using Common.Extensions;
 

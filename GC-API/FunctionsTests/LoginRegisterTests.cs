@@ -7,26 +7,28 @@ using Models.Database.User;
 
 namespace FunctionsTests
 {
-    // TODO These existing tests can be broken out into LoginTests and RegisterTests
-    // TODO After doing the above, we should add more register tests (multiple users) 
-    // and more login tests (variations of multiple logins with multiple users)
+    /// <summary>
+    /// Integration tests for Login and Register functions
+    /// </summary>
+    /// <remarks>
+    /// TODO These existing tests can be broken out into LoginTests and RegisterTests
+    /// TODO After doing the above, we should add more register tests (multiple users) 
+    /// and more login tests (variations of multiple logins with multiple users)
+    /// </remarks>
     [TestClass]
     public class LoginRegisterTests
     {
         public TestContext TestContext { get; set; }
 
-        [TestInitialize]
+        [TestInitialize] 
         public void Initialize()
         {
-            var endpoint = (string) TestContext.Properties["endpoint"];
-            var authKey = (string) TestContext.Properties["authKey"];
-            DocumentDBRepository<GcUser>.Initialize(endpoint, authKey, null, "/coreUser/email");
+            TestHelper.SetupUserDb(TestContext);
         }
 
         [TestCleanup]
         public void Cleanup()
         {
-            DocumentDBRepository<GcUser>.Teardown();
             TestHelper.Cleanup();
         }
 
@@ -131,7 +133,7 @@ namespace FunctionsTests
             var testUserIndex = 0;
             Register(testUserIndex);
             var logger = TestHelper.MakeLogger();
-            var (name, email, password) = TestHelper.TestUsers[testUserIndex];
+            var (_, email, password) = TestHelper.TestUsers[testUserIndex];
             var requestBodyValues = new { email, password };
             requestBodyValues.SetAnonymousObjectProperty(propertyToNull, null);
             var request = TestHelper.MakeRequest(requestBodyValues, logger);

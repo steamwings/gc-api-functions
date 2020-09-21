@@ -1,23 +1,17 @@
-﻿using Functions.Authentication;
+﻿using Functions.Helpers;
 using Common.Extensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
-using Microsoft.Azure.Documents.Linq;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using System;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 using Models.Database.User;
-using System.Text;
 using Models;
-using Models.Common.User;
 using Models.UI.User;
 
 namespace Functions.Primitives
@@ -51,7 +45,7 @@ namespace Functions.Primitives
             GcUser user;
             if (id is null)
             {
-                if(!client.FindUniqueItem(log,
+                if(!client.TryFindUniqueItem(log,
                     x => x.CreateDocumentQuery<GcUser>("dbs/userdb/colls/usercoll")
                         .Where(u => u.userCore.email == email),
                     out user, out var errorResponse)) {

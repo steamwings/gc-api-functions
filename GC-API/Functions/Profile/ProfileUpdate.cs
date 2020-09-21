@@ -10,10 +10,13 @@ using Models.Common.User;
 using Microsoft.Azure.Documents.Client;
 using Common.Extensions;
 using Models.Database.User;
-using Functions.Authentication;
+using Functions.Helpers;
 
 namespace Functions.Profile
 {
+    /// <summary>
+    /// Update the user's profile
+    /// </summary>
     public static class ProfileUpdate
     {
         [FunctionName(nameof(ProfileUpdate))]
