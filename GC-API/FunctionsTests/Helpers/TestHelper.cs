@@ -2,8 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http.Internal;
 using System.Runtime.CompilerServices;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -19,6 +17,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Azure.Storage.Blob;
 using Microsoft.Azure.Storage.Auth;
+using Microsoft.Extensions.Logging;
 
 namespace FunctionsTests.Helpers
 {
@@ -52,8 +51,7 @@ namespace FunctionsTests.Helpers
             { "https://via.placeholder.com/600/b0f7cc", "pic1" }
         };
 
-        private static StreamWriter sw = null;
-        private static ILoggerFactory lf = LoggerFactory.Create(builder =>
+        private static readonly ILoggerFactory lf = LoggerFactory.Create(builder =>
         {
             builder.AddDebug();
             builder.AddConsole() 
@@ -64,7 +62,9 @@ namespace FunctionsTests.Helpers
 #endif
         }
         );
-        
+
+        private static StreamWriter sw = null;
+
         [AssemblyInitialize]
         public static async Task Init(TestContext testContext)
         {
