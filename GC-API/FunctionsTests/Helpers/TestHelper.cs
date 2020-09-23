@@ -181,8 +181,8 @@ namespace FunctionsTests.Helpers
         public static CloudBlobContainer CreateStorageContainer(TestContext testContext, StorageContainer container)
         {
             var storageBlobEndpoint = (string)testContext.Properties["StorageBlobEndpoint"];
-            var storageAccountName = (string)testContext.Properties["SharedStorageAccountName"];
-            var storageKey = (string)testContext.Properties["SharedStorageKey"];
+            var storageAccountName = (string)testContext.Properties["SharedUserStorageAccountName"];
+            var storageKey = (string)testContext.Properties["SharedUserStorageKey"];
 
             var credentials = new StorageCredentials(storageAccountName, storageKey);
             var uri = new Uri(storageBlobEndpoint + '/' + storageAccountName + '/' + ContainerName(container) + '/');
