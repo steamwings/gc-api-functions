@@ -28,7 +28,7 @@ namespace FunctionsTests
         [TestInitialize]
         public void TestInit()
         {
-            _container = TestHelper.CreateStorageContainer(TestContext, TestHelper.StorageContainer.ProfilePics);
+            _container = TestHelper.CreateStorageContainer(TestContext, TestHelper.StorageContainer.ProfilePicsUploads);
             TestHelper.SetupUserDb(TestContext);
             _token = TestHelper.Register(testUser);
             _user = TestHelper.GetOnlyUser(NullLogger.Instance);

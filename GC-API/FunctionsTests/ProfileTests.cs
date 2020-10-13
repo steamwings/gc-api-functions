@@ -1,16 +1,11 @@
 ﻿using FunctionsTests.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Models.Common.User;
 using Models.Database.User;
-using System;
 using System.Collections.Generic;
-using System.Text;
 using Functions.Profile;
-using Common.Extensions;
-using FunctionsTests.Extensions;
 
 namespace FunctionsTests
 {
