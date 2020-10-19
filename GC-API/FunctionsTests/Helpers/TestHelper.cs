@@ -41,6 +41,7 @@ namespace FunctionsTests.Helpers
 
         public enum StorageContainer
         {
+            ProfilePics,
             ProfilePicsUploads
         }
 
@@ -227,6 +228,7 @@ namespace FunctionsTests.Helpers
             => container switch
             {
                 StorageContainer.ProfilePicsUploads => "profile-pics-uploads",
+                StorageContainer.ProfilePics => "profile-pics",
                 _ => throw new NotImplementedException(),
             };
     }

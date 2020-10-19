@@ -28,6 +28,8 @@ namespace FunctionsTests
         [TestInitialize]
         public void TestInit()
         {
+            // We use the upload container for both uploads and downloads since the tests are simpler
+            // We're testing the same functionality either way
             _container = TestHelper.CreateStorageContainer(TestContext, TestHelper.StorageContainer.ProfilePicsUploads);
             TestHelper.SetupUserDb(TestContext);
             _token = TestHelper.Register(testUser);
