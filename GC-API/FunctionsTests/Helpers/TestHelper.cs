@@ -30,8 +30,6 @@ namespace FunctionsTests.Helpers
     [TestClass]
     public class TestHelper
     {
-        private const string testDataFolder = @".\TestData";
-
         public static readonly List<(string name, string email, string password)> TestUsers = new List<(string, string, string)> {
             ("A Name", "e@mail.com", "password"),
             ("A Name That Is Looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
@@ -43,7 +41,8 @@ namespace FunctionsTests.Helpers
 
         public enum StorageContainer
         {
-            ProfilePics
+            ProfilePics,
+            ProfilePicsUploads
         }
 
         private static readonly Dictionary<string, string> TestPictureUrlsToPaths = new Dictionary<string, string>
@@ -70,19 +69,7 @@ namespace FunctionsTests.Helpers
         {
             ClearCosmosDb(testContext);
 
-            // local.settings.json is only used for local runs (and not unit/integration tests which just get *.runsettings from TestContext)
-            // This allows configuration values from TestContext (from a *.runsettings file) to be read the same way in unit tests as for local runs and production
-            foreach (DictionaryEntry property in testContext.Properties)
-            {
-                if (property.Value is string value)
-                {
-                    Environment.SetEnvironmentVariable((string)property.Key, value);
-                }
-            }
-
-            if (Directory.Exists(testDataFolder))
-                Directory.Delete(testDataFolder, true);
-            Directory.CreateDirectory(testDataFolder);
+            CopyTestContextToEnvironment(testContext);
 
             // Download and create test files
             using var http = new HttpClient();
@@ -92,6 +79,27 @@ namespace FunctionsTests.Helpers
                 using var downloadStream = await http.GetStreamAsync(entry.Key);
                 downloadStream.CopyTo(fileStream);
                 TestPictures.Add(entry.Value);
+            }
+        }
+
+        /// <summary>
+        /// Copy <see cref="TestContext"/> properties to <see cref="Environment"/> variables
+        /// </summary>
+        /// <remarks>
+        /// For deployed code, configuration values are saved with the function app resource. For local runs, local.settings.json is used. 
+        /// However, local.settings.json is not loaded for test runs. This method allows configuration values from TestContext (from a *.runsettings file) 
+        /// to be read the same way as configuration values are read for local runs and production.
+        /// It would be even more convenient to read the Values from local.settings.json directly, so we didn't have to have multiple copies, but this presents an issue 
+        /// in reliably determining the file's location (particularly if this code is moved to a Nuget package).
+        /// </remarks>
+        protected static void CopyTestContextToEnvironment(TestContext testContext)
+        {
+            foreach (DictionaryEntry property in testContext.Properties)
+            {
+                if (property.Value is string value)
+                {
+                    Environment.SetEnvironmentVariable((string)property.Key, value);
+                }
             }
         }
 
@@ -219,6 +227,7 @@ namespace FunctionsTests.Helpers
         private static string ContainerName(StorageContainer container)
             => container switch
             {
+                StorageContainer.ProfilePicsUploads => "profile-pics-uploads",
                 StorageContainer.ProfilePics => "profile-pics",
                 _ => throw new NotImplementedException(),
             };
