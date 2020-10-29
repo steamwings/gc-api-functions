@@ -21,6 +21,12 @@ using Microsoft.Extensions.Logging;
 
 namespace FunctionsTests.Helpers
 {
+    public enum StorageContainer
+    {
+        ProfilePics,
+        ProfilePicsUploads
+    }
+
     /// <summary>
     /// Includes sample data and helper functions for unit and integration testing
     /// </summary>
@@ -38,12 +44,6 @@ namespace FunctionsTests.Helpers
         };
 
         public static readonly List<string> TestPictures = new List<string>();
-
-        public enum StorageContainer
-        {
-            ProfilePics,
-            ProfilePicsUploads
-        }
 
         private static readonly Dictionary<string, string> TestPictureUrlsToPaths = new Dictionary<string, string>
         {
