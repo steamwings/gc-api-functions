@@ -1,7 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
-using System.Collections.Generic;
-using System.Text;
+using System.IO;
 
 namespace FunctionsTests.Extensions
 {
@@ -39,6 +38,19 @@ namespace FunctionsTests.Extensions
                 Assert.ThrowsException<T>(action);
             else action.Invoke();
 
+            return assert;
+        }
+
+        /// <summary>
+        /// Verify that one or more streams were not written to
+        /// </summary>
+        public static Assert StreamNotWritten(this Assert assert, params Stream[] streams)
+        {
+            foreach (var stream in streams)
+            {
+                if (stream.Position != 0 || stream.Length > 0)
+                    throw new AssertFailedException($"Expected unwritten stream but got position,length=({stream.Position},{stream.Length})");
+            }
             return assert;
         }
     }

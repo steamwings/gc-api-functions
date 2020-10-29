@@ -10,5 +10,8 @@
      <Parameter name="SharedUserStorageKey" value="Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==" />
      <Parameter name="ProfilePicUploadSasExpiryHours" value="1"/>
      <Parameter name="ProfilePicDefaultSasExpiryHours" value="200"/>
+     <Parameter name="ProfileWidthLarge" value="800" />
+     <Parameter name="ProfileWidthMedium" value="300" />
+     <Parameter name="ProfileWidthSmall" value="100" />
     </TestRunParameters>
 </RunSettings>

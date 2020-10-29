@@ -103,7 +103,7 @@ namespace Common.Extensions
         /// <param name="fallback">Value to return if parsing fails</param>
         /// <returns>The parsed <typeparamref name="T"/> value or <paramref name="fallback"/></returns>
         /// <remarks> This is intended to work for numeric types like int and double. </remarks>
-        public static T ParseWithDefault<T>(this string str, T fallback)
+        public static T ParseWithDefault<T>(this string str, T fallback) where T : IConvertible
         {
             var converter = TypeDescriptor.GetConverter(typeof(T));
             if (converter != null && converter.IsValid(str))
