@@ -134,7 +134,7 @@ namespace FunctionsTests
         {
             Assert.IsTrue(0 < stream.Position);
             stream.Position = 0;
-            AssertIsSquare(Image.Load<Rgba32>(stream, out var format).Bounds(), Config.GetInt(width));
+            AssertIsSquare(Image.Load<Rgba32>(stream, out var format).Bounds(), Config.Get(width, -1));
             Assert.IsInstanceOfType(format, typeof(PngFormat));
         }
 
